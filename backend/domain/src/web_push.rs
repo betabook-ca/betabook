@@ -36,6 +36,40 @@ pub enum WebPushError {
     Encrypt,
 }
 
+/// What a push service's response means for the stored subscription.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PushOutcome {
+    Delivered,
+    /// The subscription can never succeed again: expired, unsubscribed, or
+    /// bound to a different VAPID key (403).
+    Gone,
+    /// Worth reporting; the subscription is kept.
+    Failed(u16),
+}
+
+impl PushOutcome {
+    pub fn from_status(status: u16) -> Self {
+        match status {
+            200..=299 => Self::Delivered,
+            403 | 404 | 410 => Self::Gone,
+            status => Self::Failed(status),
+        }
+    }
+}
+
+/// A delivery failure safe to log: it never carries the endpoint URL.
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum PushFailure {
+    #[error("push service returned {0}")]
+    Status(u16),
+    #[error("push request failed")]
+    Request,
+    #[error("push encryption failed")]
+    Encrypt,
+    #[error("push subscription bookkeeping failed")]
+    Storage,
+}
+
 fn decode(value: &str) -> Option<Vec<u8>> {
     URL_SAFE_NO_PAD.decode(value.trim_end_matches('=')).ok()
 }
@@ -239,6 +273,26 @@ mod tests {
         );
         assert!(Subscription::parse(UA_PRIVATE, AUTH).is_err());
         assert!(Subscription::parse(UA_PUBLIC, SALT.get(..10).unwrap()).is_err());
+    }
+
+    #[test]
+    fn forgets_subscriptions_a_push_service_will_never_accept() {
+        for status in [200, 201, 202] {
+            assert_eq!(PushOutcome::from_status(status), PushOutcome::Delivered);
+        }
+        for status in [403, 404, 410] {
+            assert_eq!(
+                PushOutcome::from_status(status),
+                PushOutcome::Gone,
+                "{status}"
+            );
+        }
+        for status in [400, 413, 429, 500, 503] {
+            assert_eq!(
+                PushOutcome::from_status(status),
+                PushOutcome::Failed(status)
+            );
+        }
     }
 
     #[test]

@@ -225,7 +225,7 @@ pub struct PushTarget {
 pub struct PushSummary {
     pub name: String,
     pub sends: i64,
-    pub first_climb: String,
+    pub latest_climb: String,
 }
 
 /// Registers this device for the user, taking it over from any earlier account.
@@ -299,7 +299,7 @@ pub async fn push_targets<D: DbExecutor>(
     .collect()
 }
 
-/// The climber's name, their send count that day and the hardest climb.
+/// The climber's name, their send count that day and the latest climb sent.
 pub async fn push_summary<D: DbExecutor>(
     db: &D,
     actor_id: &str,
@@ -310,7 +310,7 @@ pub async fn push_summary<D: DbExecutor>(
             "SELECT u.name, count(*) OVER () AS sends, c.name AS climbName
              FROM sends s JOIN user u ON u.id = s.user_id JOIN climbs c ON c.id = s.climb_id
              WHERE s.user_id = ? AND s.date_sent = ?
-             ORDER BY c.grade DESC, s.id LIMIT 1",
+             ORDER BY s.id DESC LIMIT 1",
             &[
                 DbParam::Text(actor_id.to_owned()),
                 DbParam::Text(day.to_owned()),
@@ -323,6 +323,6 @@ pub async fn push_summary<D: DbExecutor>(
     Ok(Some(PushSummary {
         name: row.get_string("name")?,
         sends: row.get_i64("sends")?,
-        first_climb: row.get_string("climbName")?,
+        latest_climb: row.get_string("climbName")?,
     }))
 }

@@ -24,14 +24,22 @@ self.addEventListener("push", (event) => {
   );
 });
 
+const openAlert = async (href) => {
+  const windows = await self.clients.matchAll({ type: "window" });
+  const open = windows.find((client) => new URL(client.url).origin === self.location.origin);
+  if (open) {
+    try {
+      const navigated = await open.navigate(href);
+      if (navigated) return navigated.focus();
+    } catch {
+      // navigate() rejects for a window this worker no longer controls.
+    }
+  }
+  return self.clients.openWindow(href);
+};
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const target = new URL(event.notification.data?.url || "/notifications", self.location.origin);
-  event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
-      const open = windows.find((client) => new URL(client.url).origin === target.origin);
-      if (open) return open.focus().then(() => open.navigate(target.href));
-      return self.clients.openWindow(target.href);
-    }),
-  );
+  event.waitUntil(openAlert(target.href));
 });

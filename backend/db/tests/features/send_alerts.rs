@@ -48,15 +48,16 @@ fn devices_follow_their_latest_account_and_only_owners_unsubscribe() -> Result<(
 }
 
 #[test]
-fn summarizes_the_day_by_its_hardest_climb() -> Result<(), DbError> {
+fn summarizes_the_day_by_its_latest_send() -> Result<(), DbError> {
     let db = migrated_db();
     run_async(async {
         fixture(&db).await?;
         send(&db, 2, DAY).await?;
+        send(&db, 3, DAY).await?;
         let summary = PushSummary {
             name: "Climber".to_owned(),
-            sends: 2,
-            first_climb: "Hard".to_owned(),
+            sends: 3,
+            latest_climb: "Mid".to_owned(),
         };
         assert_eq!(push_summary(&db, "climber", DAY).await?, Some(summary));
         assert_eq!(push_summary(&db, "climber", TODAY).await?, None);

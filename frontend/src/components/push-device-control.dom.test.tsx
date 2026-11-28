@@ -2,26 +2,26 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { currentPushSubscription, disablePush, enablePush, pushSupport } from "@/lib/push";
+import { claimPushSubscription, disablePush, enablePush, pushSupport } from "@/lib/push";
 
 import { PushDeviceControl } from "./push-device-control";
 
 vi.mock("@/lib/push", () => ({
   pushSupport: vi.fn<() => string>(),
-  currentPushSubscription: vi.fn<() => Promise<unknown>>(),
+  claimPushSubscription: vi.fn<() => Promise<boolean>>(),
   enablePush: vi.fn<(key: string) => Promise<unknown>>(),
   disablePush: vi.fn<() => Promise<void>>(),
 }));
 
 const support = vi.mocked(pushSupport);
-const current = vi.mocked(currentPushSubscription);
+const claim = vi.mocked(claimPushSubscription);
 const enable = vi.mocked(enablePush);
 const disable = vi.mocked(disablePush);
 
 beforeEach(() => {
   vi.stubGlobal("Notification", { permission: "default" });
   support.mockReturnValue("supported");
-  current.mockResolvedValue(null);
+  claim.mockResolvedValue(false);
 });
 
 afterEach(() => {
@@ -40,9 +40,22 @@ it("turns push on for this device with the server's key", async () => {
   expect(await screen.findByText("Notifications are on for this device.")).toBeInTheDocument();
 });
 
+it("claims an existing subscription for the signed-in account before showing it on", async () => {
+  claim.mockResolvedValue(true);
+  render(<PushDeviceControl publicKey="server-key" />);
+  expect(await screen.findByText("Notifications are on for this device.")).toBeInTheDocument();
+  expect(claim).toHaveBeenCalledTimes(1);
+});
+
+it("shows push off when this account can't claim the device's subscription", async () => {
+  claim.mockRejectedValue(new Error("offline"));
+  render(<PushDeviceControl publicKey="server-key" />);
+  expect(await screen.findByRole("button", { name: "Turn on for this device" })).toBeEnabled();
+});
+
 it("turns push off when this device is already subscribed", async () => {
   const user = userEvent.setup();
-  current.mockResolvedValue({ endpoint: "https://fcm.googleapis.com/fcm/send/x" } as never);
+  claim.mockResolvedValue(true);
   disable.mockResolvedValue();
   render(<PushDeviceControl publicKey="server-key" />);
 

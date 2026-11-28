@@ -6,7 +6,8 @@ use axum::{
     response::Response,
 };
 use betabook_db::send_alerts::{self, PushTarget};
-use betabook_domain::web_push::{self, Subscription, Vapid};
+use betabook_domain::web_push::{self, PushFailure, PushOutcome, Subscription, Vapid};
+use futures_util::{StreamExt, stream};
 use serde_json::json;
 use url::form_urlencoded;
 use worker::{Fetch, Headers, Method, Request, RequestInit};
@@ -17,6 +18,11 @@ use crate::state::{ApiError, AppState};
 
 /// Push services drop a message nobody fetched within a day.
 const PUSH_TTL_SECS: &str = "86400";
+/// Deliveries in flight at once, so a large friend list finishes inside `waitUntil`.
+const PUSH_CONCURRENCY: usize = 8;
+/// Devices pushed per send. Each delivery is a subrequest, and a Worker
+/// invocation has a subrequest budget; the in-app alert still reaches everyone.
+const MAX_PUSH_DELIVERIES: usize = 400;
 
 /// The configured VAPID identity, or `None` where push is not set up.
 pub(crate) fn vapid(state: &AppState) -> Option<Vapid> {
@@ -71,13 +77,13 @@ async fn push(
     };
     let (title, body) = if summary.sends == 1 {
         (
-            format!("{} sent {}", summary.name, summary.first_climb),
+            format!("{} sent {}", summary.name, summary.latest_climb),
             "Tap to see the day.".to_owned(),
         )
     } else {
         (
             format!("{} sent {} climbs", summary.name, summary.sends),
-            format!("Including {}.", summary.first_climb),
+            format!("Latest: {}.", summary.latest_climb),
         )
     };
     let payload = json!({
@@ -88,11 +94,21 @@ async fn push(
     })
     .to_string();
     let now_secs = state.now_ms() / 1000;
-    for target in &targets {
-        if let Err(error) = deliver(state, &vapid, target, payload.as_bytes(), now_secs).await {
-            // The endpoint is a capability URL; report only that a delivery failed.
-            crate::observability::background_error("web_push_delivery", error);
-        }
+    let skipped = targets.len().saturating_sub(MAX_PUSH_DELIVERIES);
+    let failures: Vec<PushFailure> = stream::iter(targets.iter().take(MAX_PUSH_DELIVERIES))
+        .map(|target| deliver(state, &vapid, target, payload.as_bytes(), now_secs))
+        .buffer_unordered(PUSH_CONCURRENCY)
+        .filter_map(|result| async move { result.err() })
+        .collect()
+        .await;
+    for failure in failures {
+        crate::observability::background_error("web_push_delivery", failure);
+    }
+    if skipped > 0 {
+        crate::observability::background_error(
+            "web_push_delivery",
+            format!("skipped {skipped} devices over the per-send limit"),
+        );
     }
     Ok(())
 }
@@ -103,17 +119,37 @@ async fn deliver(
     target: &PushTarget,
     payload: &[u8],
     now_secs: i64,
-) -> Result<(), ApiError> {
+) -> Result<(), PushFailure> {
     let (Some(audience), Ok(subscription)) = (
         web_push::push_service_audience(&target.endpoint),
         Subscription::parse(&target.p256dh, &target.auth),
     ) else {
-        send_alerts::forget_push_endpoint(state.db(), &target.endpoint).await?;
-        return Ok(());
+        return forget(state, target).await;
     };
-    let body = web_push::encrypt(&subscription, payload).map_err(ApiError::internal)?;
+    let body = web_push::encrypt(&subscription, payload).map_err(|_| PushFailure::Encrypt)?;
+    let status = post(
+        &target.endpoint,
+        &vapid.authorization(&audience, now_secs),
+        &body,
+    )
+    .await
+    .map_err(|_| PushFailure::Request)?;
+    match PushOutcome::from_status(status) {
+        PushOutcome::Delivered => Ok(()),
+        PushOutcome::Gone => forget(state, target).await,
+        PushOutcome::Failed(status) => Err(PushFailure::Status(status)),
+    }
+}
+
+async fn forget(state: &AppState, target: &PushTarget) -> Result<(), PushFailure> {
+    send_alerts::forget_push_endpoint(state.db(), &target.endpoint)
+        .await
+        .map_err(|_| PushFailure::Storage)
+}
+
+async fn post(endpoint: &str, authorization: &str, body: &[u8]) -> worker::Result<u16> {
     let headers = Headers::new();
-    headers.set("Authorization", &vapid.authorization(&audience, now_secs))?;
+    headers.set("Authorization", authorization)?;
     headers.set("Content-Encoding", "aes128gcm")?;
     headers.set("Content-Type", "application/octet-stream")?;
     headers.set("TTL", PUSH_TTL_SECS)?;
@@ -121,22 +157,11 @@ async fn deliver(
     let mut init = RequestInit::new();
     init.with_method(Method::Post)
         .with_headers(headers)
-        .with_body(Some(
-            worker::js_sys::Uint8Array::from(body.as_slice()).into(),
-        ));
-    let response = Fetch::Request(Request::new_with_init(&target.endpoint, &init)?)
+        .with_body(Some(worker::js_sys::Uint8Array::from(body).into()));
+    let response = Fetch::Request(Request::new_with_init(endpoint, &init)?)
         .send()
         .await?;
-    match response.status_code() {
-        200..=299 => Ok(()),
-        404 | 410 => {
-            send_alerts::forget_push_endpoint(state.db(), &target.endpoint).await?;
-            Ok(())
-        }
-        status => Err(ApiError::internal(format!(
-            "push service returned {status}"
-        ))),
-    }
+    Ok(response.status_code())
 }
 
 #[worker::send]

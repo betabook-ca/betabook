@@ -25,21 +25,40 @@ async function registration() {
   return navigator.serviceWorker.register("/sw.js", { scope: "/" });
 }
 
-/** This browser's current subscription, without prompting. */
-export async function currentPushSubscription(): Promise<PushSubscription | null> {
+async function currentPushSubscription(): Promise<PushSubscription | null> {
   const existing = await navigator.serviceWorker.getRegistration("/");
   return (await existing?.pushManager.getSubscription()) ?? null;
+}
+
+function savable(subscription: PushSubscription) {
+  const { endpoint, keys } = subscription.toJSON();
+  return endpoint && keys?.p256dh && keys.auth
+    ? { endpoint, p256dh: keys.p256dh, auth: keys.auth }
+    : null;
+}
+
+/** Registers this browser's existing subscription to the signed-in account,
+ * which may differ from the account that subscribed it. False when there is none. */
+export async function claimPushSubscription(): Promise<boolean> {
+  const subscription = await currentPushSubscription();
+  const keys = subscription && savable(subscription);
+  if (!keys) return false;
+  return (await savePushSubscription(keys)).ok;
 }
 
 /** Asks for permission, subscribes this browser and registers it for the account. */
 export async function enablePush(
   publicKey: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  if ((await Notification.requestPermission()) !== "granted") {
+  const permission = await Notification.requestPermission();
+  if (permission === "denied") {
     return {
       ok: false,
       error: "Notifications are blocked for Betabook in this browser's settings.",
     };
+  }
+  if (permission !== "granted") {
+    return { ok: false, error: "Allow notifications when your browser asks to turn them on." };
   }
   const subscription = await (
     await registration()
@@ -47,12 +66,12 @@ export async function enablePush(
     userVisibleOnly: true,
     applicationServerKey: applicationServerKey(publicKey),
   });
-  const { endpoint, keys } = subscription.toJSON();
-  if (!endpoint || !keys?.p256dh || !keys.auth) {
+  const keys = savable(subscription);
+  if (!keys) {
     await subscription.unsubscribe();
     return { ok: false, error: "This browser's notifications aren't supported." };
   }
-  const result = await savePushSubscription({ endpoint, p256dh: keys.p256dh, auth: keys.auth });
+  const result = await savePushSubscription(keys);
   if (!result.ok) await subscription.unsubscribe();
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
 import {
-  currentPushSubscription,
+  claimPushSubscription,
   disablePush,
   enablePush,
   pushSupport,
@@ -31,8 +31,8 @@ export function PushDeviceControl({ publicKey }: { publicKey: string }) {
     if (state !== "checking") return;
     let active = true;
     async function check() {
-      const subscription = await currentPushSubscription().catch(() => null);
-      if (active) setState(subscription ? "on" : "off");
+      const claimed = await claimPushSubscription().catch(() => false);
+      if (active) setState(claimed ? "on" : "off");
     }
     void check();
     return () => {

@@ -1,6 +1,13 @@
-import { expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
-import { pushSupport } from "@/lib/push";
+import { enablePush, pushSupport } from "@/lib/push";
+
+vi.mock("@/spa/lib/actions-client", () => ({
+  savePushSubscription: vi.fn<() => Promise<unknown>>(),
+  deletePushSubscription: vi.fn<() => Promise<unknown>>(),
+}));
+
+afterEach(() => vi.unstubAllGlobals());
 
 function env(windowKeys: string[], navigator: Partial<Navigator> & Record<string, unknown>) {
   const win = Object.fromEntries(windowKeys.map((key) => [key, {}]));
@@ -24,4 +31,15 @@ it("asks iPhone and iPad browser tabs to add the site to the Home Screen", () =>
 
 it("reports other browsers without push as unsupported", () => {
   expect(pushSupport(env(["Notification"], { platform: "MacIntel" }))).toBe("unsupported");
+});
+
+it.each([
+  ["default", "Allow notifications when your browser asks to turn them on."],
+  ["denied", "Notifications are blocked for Betabook in this browser's settings."],
+])("explains a %s permission without subscribing", async (permission, error) => {
+  const register = vi.fn<() => Promise<never>>();
+  vi.stubGlobal("Notification", { requestPermission: async () => permission });
+  vi.stubGlobal("navigator", { serviceWorker: { register } });
+  expect(await enablePush("key")).toEqual({ ok: false, error });
+  expect(register).not.toHaveBeenCalled();
 });
