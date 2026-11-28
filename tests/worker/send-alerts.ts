@@ -42,7 +42,6 @@ export async function testSendAlerts({ server, db, signIn }: SmokeContext) {
       ],
     });
 
-  // Fan-out runs in waitUntil, after the response. Poll the committed row.
   async function waitForUnread() {
     const deadline = Date.now() + 10_000;
     let unread;
@@ -74,7 +73,6 @@ export async function testSendAlerts({ server, db, signIn }: SmokeContext) {
     return body.count;
   };
 
-  // A send dated outside the alert window commits but alerts no one.
   assert.deepEqual(await send(await climb("Old problem"), isoDay(-30)), { ok: true });
   assert.deepEqual(await send(await climb("Fresh problem"), today), { ok: true });
   await waitForUnread();

@@ -20,7 +20,6 @@ export default function NotificationsRoute({ viewerId }: { viewerId: string | nu
   });
   const loaded = Boolean(data);
 
-  // Opening the page reads every alert. The list keeps this visit's unread dots.
   useEffect(() => {
     if (!viewerId || !loaded) return;
     void markNotificationsRead().then(

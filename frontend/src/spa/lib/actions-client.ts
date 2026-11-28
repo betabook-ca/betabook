@@ -11,7 +11,6 @@ import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
 
 const READ_ONLY_ACTIONS = new Set([
   "getSendEditorData",
-  // Keeps this visit's unread highlights; the bell refreshes its own count.
   "markNotificationsRead",
   "submitContactMessage",
   "resolveImportClimbs",
