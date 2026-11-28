@@ -15,6 +15,8 @@ use sha2::Sha256;
 
 /// One record holds the whole message; push services accept 4096 bytes.
 const RECORD_SIZE: u32 = 4096;
+/// RFC 8188 padding delimiter that ends the final record.
+const LAST_RECORD_DELIMITER: u8 = 0x02;
 /// Plaintext room left in one record after the header and AEAD tag.
 pub const MAX_PAYLOAD: usize = 3_000;
 /// VAPID tokens may live at most a day; twelve hours leaves room for clock skew.
@@ -92,7 +94,6 @@ fn random_secret() -> Result<SecretKey, WebPushError> {
     loop {
         let mut bytes = [0u8; 32];
         getrandom::fill(&mut bytes).map_err(|_| WebPushError::Random)?;
-        // Out-of-range scalars are vanishingly rare; draw again.
         if let Ok(key) = SecretKey::from_slice(&bytes) {
             return Ok(key);
         }
@@ -118,7 +119,6 @@ fn encrypt_with(
     let sender_public = sender.public_key().to_sec1_bytes();
     let shared = sender.diffie_hellman(&subscription.public_key);
 
-    // RFC 8291 §3.3: mix the subscription's auth secret into the ECDH secret.
     let mut key_info = b"WebPush: info\0".to_vec();
     key_info.extend_from_slice(&subscription.sec1);
     key_info.extend_from_slice(&sender_public);
@@ -127,7 +127,6 @@ fn encrypt_with(
         .expand(&key_info, &mut ikm)
         .map_err(|_| WebPushError::Encrypt)?;
 
-    // RFC 8188 §2.2–2.3: content-encryption key and nonce for the one record.
     let prk = Hkdf::<Sha256>::new(Some(&salt), &ikm);
     let mut cek = [0u8; 16];
     let mut nonce = [0u8; 12];
@@ -136,7 +135,7 @@ fn encrypt_with(
         .map_err(|_| WebPushError::Encrypt)?;
 
     let mut record = plaintext.to_vec();
-    record.push(0x02); // padding delimiter of the last record
+    record.push(LAST_RECORD_DELIMITER);
     let cipher = Aes128Gcm::new_from_slice(&cek).map_err(|_| WebPushError::Encrypt)?;
     let ciphertext = cipher
         .encrypt(&Nonce::from(nonce), record.as_slice())

@@ -28,7 +28,6 @@ export function SignOutButton({
     setError(null);
     setPending(true);
     try {
-      // This device shouldn't keep alerting the account that just left it.
       if (pushSupport({ window, navigator }) === "supported") await disablePush().catch(() => {});
       await authClient.signOut({
         fetchOptions: {

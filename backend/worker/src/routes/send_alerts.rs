@@ -80,7 +80,6 @@ async fn push(
             format!("Including {}.", summary.first_climb),
         )
     };
-    // The tag makes each later send that day replace the notification on screen.
     let payload = json!({
         "title": title,
         "body": body,

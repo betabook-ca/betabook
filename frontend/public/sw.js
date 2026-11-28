@@ -1,6 +1,3 @@
-// Betabook service worker: friend send alerts only. It has no fetch handler,
-// so it never caches or intercepts a page.
-
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
@@ -20,7 +17,6 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(message.title || "Betabook", {
       body: message.body || "",
       icon: "/branding/app-icon-192.png",
-      // Later sends that day replace this notification without buzzing again.
       tag: message.tag || "send-alert",
       renotify: false,
       data: { url },
