@@ -20,7 +20,7 @@ export function MemberWorkspaceRoute({
   if (!area || area === "account") return <Outlet />;
   return (
     <WorkspaceShell area={area} userId={viewerId}>
-      <PageErrorBoundary fallback={<SkeletonListRows />}>
+      <PageErrorBoundary fallback={<SkeletonListRows className="max-md:min-h-svh" />}>
         <Outlet />
       </PageErrorBoundary>
     </WorkspaceShell>

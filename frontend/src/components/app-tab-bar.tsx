@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 
 import { useFriendRequestCount } from "@/components/friend-requests-provider";
 import { PrimaryNavigationLink } from "@/components/primary-navigation-link";
@@ -28,12 +28,57 @@ export function AppTabBar() {
 /** Shared live frame for the app and scroll-behavior gallery. */
 export function FloatingAppTabBar(props: AppTabsProps) {
   const pathname = usePathname();
+  const barRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+    // Measure the resting box only. Scaling it never triggers this observer.
+    const observer = new ResizeObserver(([entry]) => {
+      const { inlineSize, blockSize } = entry.borderBoxSize[0];
+      if (!inlineSize || !blockSize) return;
+      const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const compactWidth = Math.min(18 * rem, inlineSize - rem);
+      bar.style.setProperty("--tab-compact-x", String(compactWidth / inlineSize));
+      bar.style.setProperty("--tab-compact-y", String(1 - (0.75 * rem) / blockSize));
+    });
+    observer.observe(bar, { box: "border-box" });
+    return () => observer.disconnect();
+  }, []);
+  const [selected, setSelected] = useState<PrimaryArea>();
   const [scrollState, setScrollState] = useState({ pathname, compact: false });
   if (scrollState.pathname !== pathname) {
     setScrollState({ pathname, compact: false });
+    setSelected(undefined);
   }
-  const compact = scrollState.pathname === pathname && scrollState.compact;
-  useEffect(() => {
+  const compact = !selected && scrollState.pathname === pathname && scrollState.compact;
+
+  function selectTab(event: MouseEvent<HTMLElement>) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
+    const link = event.target instanceof Element ? event.target.closest("a") : null;
+    if (!link || link.target || link.pathname === pathname) return;
+    setSelected(primaryAreaForPath(link.pathname, props.account.id));
+  }
+
+  const scrollPath = useRef(pathname);
+  useLayoutEffect(() => {
+    // A route can reset or clamp the scroll position several times as its content arrives.
+    let userScrolling = scrollPath.current === pathname;
+    scrollPath.current = pathname;
+    const beginScroll = () => {
+      userScrolling = true;
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key))
+        beginScroll();
+    };
     let previous = Math.max(0, window.scrollY);
     let travel = 0;
     let minimized = false;
@@ -41,7 +86,7 @@ export function FloatingAppTabBar(props: AppTabsProps) {
       const y = Math.max(0, window.scrollY);
       const delta = y - previous;
       previous = y;
-      if (delta === 0) return;
+      if (!userScrolling || delta === 0) return;
       travel = Math.sign(delta) === Math.sign(travel) ? travel + delta : delta;
       const next = y < 72 || travel <= -12 ? false : travel >= 24 ? true : minimized;
       if (next !== minimized) {
@@ -50,7 +95,19 @@ export function FloatingAppTabBar(props: AppTabsProps) {
       }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    if (!userScrolling) {
+      window.addEventListener("touchmove", beginScroll, { passive: true, once: true });
+      window.addEventListener("wheel", beginScroll, { passive: true, once: true });
+      window.addEventListener("keydown", onKeyDown);
+      window.addEventListener("pointerdown", beginScroll, { passive: true, once: true });
+    }
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("touchmove", beginScroll);
+      window.removeEventListener("wheel", beginScroll);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("pointerdown", beginScroll);
+    };
   }, [pathname]);
 
   return (
@@ -59,6 +116,9 @@ export function FloatingAppTabBar(props: AppTabsProps) {
       <nav
         aria-label="Primary"
         data-app-tab-bar
+        ref={barRef}
+        onClickCapture={selectTab}
+        data-destination={selected}
         data-compact={compact}
         className="app-tab-bar-surface app-tab-bar-floating fixed inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 mx-auto md:hidden"
       >

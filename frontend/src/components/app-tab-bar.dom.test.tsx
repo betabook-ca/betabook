@@ -88,6 +88,9 @@ it("compacts after downward scrolling and expands on upward scrolling or route c
   rerender(<AppTabBar />);
   expect(tabBar()).toHaveAttribute("data-compact", "false");
   scrollTo(300);
+  expect(tabBar()).toHaveAttribute("data-compact", "false");
+  fireEvent.touchMove(window);
+  scrollTo(360);
   expect(tabBar()).toHaveAttribute("data-compact", "true");
   scrollTo(-10);
   expect(tabBar()).toHaveAttribute("data-compact", "false");
