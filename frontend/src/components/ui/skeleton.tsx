@@ -33,9 +33,9 @@ export function Skeleton({ className, tone = "base", rounded = "rounded-md" }: S
 
 /** Placeholder for a list of ListRow entries — mirrors its route-table
  * px-4 py-3 density and the divide-y separators the real lists use. */
-export function SkeletonListRows({ rows = 6 }: { rows?: number }) {
+export function SkeletonListRows({ rows = 6, className }: { rows?: number; className?: string }) {
   return (
-    <div className="flex flex-col divide-y divide-separator">
+    <div className={clsx("flex flex-col divide-y divide-separator", className)}>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex flex-col gap-2 px-4 py-3">
           <Skeleton className="h-4 w-1/3" />

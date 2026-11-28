@@ -44,7 +44,7 @@ function OwnerGoals({ ownerId }: { ownerId: string }) {
   ) : data ? (
     <GoalPanel ownerId={ownerId} {...data} />
   ) : (
-    <SkeletonListRows rows={4} />
+    <SkeletonListRows rows={4} className="max-md:min-h-svh" />
   );
 }
 

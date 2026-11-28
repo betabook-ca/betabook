@@ -75,7 +75,7 @@ export function FeedList({
         {initialPage ? (
           <FeedResults key={view} initialPage={initialPage} view={view} hasFriends={hasFriends} />
         ) : error ? null : (
-          <SkeletonListRows rows={8} />
+          <SkeletonListRows rows={8} className="max-md:min-h-svh" />
         )}
       </NavigationPendingRegion>
     </div>

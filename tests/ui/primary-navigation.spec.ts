@@ -112,8 +112,10 @@ test(
     const nav = page.getByRole("navigation", { name: "Primary" });
     const track = nav.locator("ul");
     expect(
-      await track.evaluate((el) => getComputedStyle(el, "::before").transitionDuration),
-    ).toContain("0.28s");
+      await track.evaluate(
+        (el) => getComputedStyle(el, "::before").transitionDuration.split(",")[0],
+      ),
+    ).toBe("0.15s");
     await nav.getByRole("link", { name: "Progress", exact: true }).click();
     await expect(nav.getByRole("link", { name: "Progress", exact: true })).toHaveAttribute(
       "aria-current",
@@ -162,9 +164,9 @@ test(
     await expect(nav).toHaveAttribute("data-compact", "true");
     const compact = await nav.boundingBox();
     if (!compact) throw new Error("Expected compact navigation");
-    expect(compact.height).toBe(50);
-    expect(compact.width).toBeLessThan(expanded.width);
-    expect(compact.y + compact.height).toBe(expanded.y + expanded.height);
+    expect(compact.height).toBeCloseTo(50, 1);
+    expect(compact.width).toBeCloseTo(Math.min(288, viewport.width - 64), 1);
+    expect(compact.y + compact.height).toBeCloseTo(expanded.y + expanded.height, 1);
     for (const link of await nav.getByRole("link").all()) {
       await expect(link).toBeInViewport();
       const box = await link.boundingBox();
@@ -181,6 +183,51 @@ test(
     await expect(
       nav.getByRole("link", { name: "Progress, 5 notifications", exact: true }),
     ).toHaveAttribute("aria-current", /page|location/);
+  },
+);
+
+test(
+  "the compact phone bar expands and moves the selection together on a tab change",
+  { tag: "@layout" },
+  async ({ page }, info) => {
+    if ((page.viewportSize()?.width ?? 0) >= 768) test.skip();
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await openStory(page, info, "components-navigation-tab-bar--scroll-behavior");
+    const nav = page.getByRole("navigation", { name: "Primary", exact: true });
+    await expect(nav).toHaveCSS("backdrop-filter", "none");
+    await expect(nav).toHaveCSS("transition-duration", "0.15s");
+    await expect(nav).toHaveCSS("transition-timing-function", "linear");
+    await expect(nav).toHaveCSS("transition-property", "transform");
+    const icon = nav.getByRole("link").first().locator("svg");
+    await expect(icon).toHaveCSS("transition-duration", "0s");
+
+    const expandedWidth = await nav.evaluate((bar) => bar.getBoundingClientRect().width);
+    await page.mouse.wheel(0, 500);
+    await expect(nav).toHaveAttribute("data-compact", "true");
+    await nav.evaluate((bar) =>
+      Promise.all(bar.getAnimations({ subtree: true }).map((animation) => animation.finished)),
+    );
+
+    const progress = nav.getByRole("link", { name: "Progress, 5 notifications", exact: true });
+    // Keep the destination in its initial loading state while the router changes tabs.
+    await page
+      .locator("main")
+      .first()
+      .evaluate((main) => {
+        const placeholder = document.createElement("div");
+        placeholder.dataset.loadingRows = "";
+        main.appendChild(placeholder);
+      });
+    const originalBar = await nav.elementHandle();
+    await progress.tap();
+    await expect(progress).toHaveAttribute("aria-current", /page|location/);
+    await expect
+      .poll(() => nav.evaluate((bar) => bar.getBoundingClientRect().width))
+      .toBeCloseTo(expandedWidth, 1);
+    await expect(nav).toHaveAttribute("data-compact", "false");
+    await expect(nav).toHaveCSS("height", "62px");
+    await page.locator("[data-loading-rows]").evaluate((placeholder) => placeholder.remove());
+    expect(await nav.evaluate((bar, original) => bar === original, originalBar)).toBe(true);
   },
 );
 

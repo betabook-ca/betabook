@@ -55,7 +55,12 @@ export default function UserJournalRoute({ viewerId }: { viewerId: string | null
       ? error.message
       : "Failed to load journal"
     : null;
-  if (!data) return message ? <p role="alert">{message}</p> : <SkeletonListRows rows={4} />;
+  if (!data)
+    return message ? (
+      <p role="alert">{message}</p>
+    ) : (
+      <SkeletonListRows rows={4} className="max-md:min-h-svh" />
+    );
   return (
     <SpaJournalView
       ownerId={id}
