@@ -5,12 +5,12 @@ import { Menu } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog, Popover } from "react-aria-components";
 
-import { SidebarFrame } from "@/components/app-sidebar";
-import { AppTabLinks } from "@/components/app-tab-bar";
-import { Brand } from "@/components/brand";
-import { SearchTriggerControl } from "@/components/command-palette";
-import { NavLink, MENU_PANEL_CLASS, MENU_TRIGGER_CLASS } from "@/components/nav-link";
-import { PrimaryNavigationLink } from "@/components/primary-navigation-link";
+import { SidebarFrame } from "@/components/app-shell/app-sidebar";
+import { AppTabLinks } from "@/components/app-shell/app-tab-bar";
+import { Brand } from "@/components/app-shell/brand";
+import { SearchTriggerControl } from "@/components/app-shell/command-palette";
+import { NavLink, MENU_PANEL_CLASS, MENU_TRIGGER_CLASS } from "@/components/app-shell/nav-link";
+import { PrimaryNavigationLink } from "@/components/app-shell/primary-navigation-link";
 import type { ProductTourPageProps } from "@/components/product-tours/types";
 import { AppLink } from "@/components/ui/app-link";
 import { useTyping } from "@/hooks/use-mobile-tabs-visible";

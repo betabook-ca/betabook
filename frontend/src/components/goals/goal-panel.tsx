@@ -4,16 +4,16 @@ import { Button, Menu, useOverlayState } from "@heroui/react";
 import { CirclePlus, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 
+import { DisciplineChip } from "@/components/climbing/discipline-chip";
+import { useGradePreferences } from "@/components/climbing/grade-preferences";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import { DisciplineChip } from "@/components/ui/discipline-chip";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
-import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ListRow } from "@/components/ui/list-row";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { OptionSelect } from "@/components/ui/option-select";
-import { ProgressBar } from "@/components/ui/progress-bar";
+import { AmountMeter } from "@/components/ui/progress-bar";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { SectionNavigation } from "@/components/ui/section-navigation";
 import { useGoalPages } from "@/hooks/use-goal-pages";
@@ -183,7 +183,7 @@ function GoalRowTitle({
             className={`flex items-center gap-2 font-normal ${mobileLongClimb ? "max-[480px]:col-start-1 max-[480px]:row-start-2" : ""}`}
           >
             <div className="w-20 md:w-24">
-              <ProgressBar
+              <AmountMeter
                 size="sm"
                 value={Math.min(goal.progress, goal.target)}
                 max={goal.target}

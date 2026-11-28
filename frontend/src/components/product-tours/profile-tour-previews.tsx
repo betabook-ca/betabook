@@ -3,16 +3,17 @@
 import { Button } from "@heroui/react";
 import { useId, useState } from "react";
 
-import { StatTiles } from "@/components/analytics-stat-tiles";
+import { PrivacyFields } from "@/components/account/privacy-fields";
+import { StatTiles } from "@/components/analytics/analytics-stat-tiles";
+import { ProgressionChart } from "@/components/analytics/progression-chart";
+import { Grade } from "@/components/climbing/grade";
 import { JournalEntryLayout, JournalEntryStatus } from "@/components/journal/journal-entry-layout";
 import { ProjectCardLayout } from "@/components/journal/project-card-layout";
 import { ProjectSessionList } from "@/components/journal/project-session-list";
-import { PrivacyFields } from "@/components/privacy-fields";
 import { TourChoices } from "@/components/product-tours/tour-choices";
-import { ProgressionChart } from "@/components/progression-chart";
-import { SendGradeCell } from "@/components/send-grade-cell";
+import { SendGradeCell } from "@/components/sends/send-grade-cell";
 import { cardClass } from "@/components/ui/card";
-import { Grade } from "@/components/ui/grade";
+import { PanelHeader } from "@/components/ui/eyebrow";
 import { LoadMoreButton } from "@/components/ui/load-more-button";
 import { QueryInput } from "@/components/ui/query-input";
 import { SettingsSection } from "@/components/ui/settings";
@@ -261,7 +262,7 @@ export function DemoAnalytics() {
         ]}
       />
       <div data-tour-target="analytics-chart">
-        <h3 className="mb-2 text-sm font-medium">Boulder progression</h3>
+        <PanelHeader title="Boulder progression" />
         <ProgressionChart
           type="boulder"
           points={analytics.progression[0].points}

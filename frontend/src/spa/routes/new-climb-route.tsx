@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 
-import { AddKindNav } from "@/components/add-kind-nav";
-import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { NewClimbForm } from "@/components/new-climb-form";
+import { AddKindNav } from "@/components/app-shell/add-kind-nav";
+import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
+import { NewClimbForm } from "@/components/climbs/new-climb-form";
 import { Skeleton, SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
 import { isClimbType } from "@/lib/grades";

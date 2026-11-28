@@ -3,16 +3,17 @@
 import { Button } from "@heroui/react";
 import { useState } from "react";
 
-import { AreaBreadcrumb } from "@/components/area-breadcrumb";
+import { AreaBreadcrumb } from "@/components/areas/area-breadcrumb";
 import { useClimbListEditControl } from "@/components/climb-lists/climb-list-editing";
 import { ClimbListEditor } from "@/components/climb-lists/climb-list-editor";
 import { ClimbListToolbar } from "@/components/climb-lists/climb-list-toolbar";
-import { ClimbSentIndicator } from "@/components/climb-sent-indicator";
-import { DisciplineChip } from "@/components/ui/discipline-chip";
+import { DisciplineChip } from "@/components/climbing/discipline-chip";
+import { Grade } from "@/components/climbing/grade";
+import { GradeLabel } from "@/components/climbing/grade-label";
+import { ClimbSentIndicator } from "@/components/sends/climb-sent-indicator";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Grade } from "@/components/ui/grade";
-import { GradeLabel } from "@/components/ui/grade-label";
 import { ListRow } from "@/components/ui/list-row";
+import { RowList } from "@/components/ui/row-list";
 import type { AreaBreadcrumbs, ClimbListItem } from "@/lib/catalog-types";
 import {
   DEFAULT_CLIMB_LIST_VIEW,
@@ -138,7 +139,7 @@ export function ClimbListItems({
             }
           />
         ) : (
-          <ol className="flex flex-col divide-y divide-separator">
+          <RowList ordered>
             {items.map((item) => (
               <ListRow
                 key={item.climbId}
@@ -177,7 +178,7 @@ export function ClimbListItems({
                 }
               />
             ))}
-          </ol>
+          </RowList>
         )}
       </div>
     </div>

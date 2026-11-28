@@ -3,9 +3,10 @@
 import { Button } from "@heroui/react";
 import { Target } from "lucide-react";
 
-import { DisciplineChip } from "@/components/ui/discipline-chip";
-import { Grade } from "@/components/ui/grade";
-import { GradeLabel } from "@/components/ui/grade-label";
+import { DisciplineChip } from "@/components/climbing/discipline-chip";
+import { Grade } from "@/components/climbing/grade";
+import { GradeLabel } from "@/components/climbing/grade-label";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { formatCount } from "@/lib/format";
 import type { OpenProject } from "@/lib/logbook-types";
 
@@ -25,7 +26,7 @@ export function ProjectSuggestionList({
 
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium text-muted">Recommended projects</h3>
+      <Eyebrow as="h3">Recommended projects</Eyebrow>
       <ul aria-label="Suggested projects" className="flex flex-col gap-1.5">
         {suggestions.map((climb) => (
           <li key={climb.climbId}>

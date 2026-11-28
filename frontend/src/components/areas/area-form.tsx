@@ -1,0 +1,147 @@
+"use client";
+
+import { Button, Input, Label, TextArea, TextField } from "@heroui/react";
+import { useState, useTransition } from "react";
+
+import { AreaPicker, type PickedArea } from "@/components/areas/area-picker";
+import { SURFACE_CARD_CLASS } from "@/components/ui/card";
+import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { useReportPending } from "@/hooks/use-report-pending";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import type { Area } from "@/lib/catalog-types";
+import { createArea, updateArea } from "@/spa/lib/actions-client";
+
+type AreaFormProps = {
+  /** The new area's parent, when already fixed (creating a subarea from an
+   * existing area's menu — no picker shown). `null` renders an `AreaPicker`
+   * instead, which the viewer has to pick from: every area added here goes
+   * under an existing one. Root areas exist (the seed data's continents) but
+   * aren't creatable from this form, so an empty picker is an error rather
+   * than a request for one. Ignored when editing (`area` present) — an
+   * area's parent isn't editable here. */
+  parentId: number | null;
+  area?: Area;
+  onDone?: (areaId: number, areaName: string) => void;
+  /** Reports the save's in-flight state, for the dialog around the form. */
+  onPendingChange?: (pending: boolean) => void;
+};
+
+export function AreaForm({
+  parentId: fixedParentId,
+  area,
+  onDone,
+  onPendingChange,
+}: AreaFormProps) {
+  const [name, setName] = useState(area?.name ?? "");
+  const [description, setDescription] = useState(area?.description ?? "");
+  const [pickedParent, setPickedParent] = useState<PickedArea | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [pending, startTransition] = useTransition();
+  useReportPending(pending, onPendingChange);
+
+  const parentId = fixedParentId ?? pickedParent?.id ?? null;
+  const trimmedName = name.trim();
+  const parentInvalid = submitAttempted && parentId == null;
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitAttempted(true);
+
+    if (area) {
+      const formData = new FormData();
+      formData.set("description", description);
+      startTransition(async () => {
+        try {
+          const result = await updateArea(area.id, formData);
+          if (!result.ok) {
+            setError(result.error);
+            return;
+          }
+          onDone?.(area.id, area.name);
+        } catch {
+          setError(GENERIC_ERROR_MESSAGE);
+        }
+      });
+      return;
+    }
+
+    // A new area always goes under an existing one; `parentInvalid` is
+    // already showing why nothing happened.
+    if (parentId == null) return;
+
+    const formData = new FormData();
+    formData.set("name", trimmedName);
+    formData.set("description", description);
+
+    startTransition(async () => {
+      try {
+        const result = await createArea(parentId, formData);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        onDone?.(result.value, trimmedName);
+      } catch {
+        setError(GENERIC_ERROR_MESSAGE);
+      }
+    });
+  }
+
+  if (area) {
+    return (
+      <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
+        <fieldset disabled={pending} className="contents">
+          <TextField className="w-full" value={description} onChange={setDescription}>
+            <Label>Description</Label>
+            <TextArea placeholder="Describe the area…" rows={6} />
+          </TextField>
+
+          {error && <InlineAlert>{error}</InlineAlert>}
+
+          <Button type="submit" isDisabled={pending} className="self-start">
+            Save changes
+          </Button>
+        </fieldset>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className={SURFACE_CARD_CLASS}>
+      {/* onDone closes the dialog, so edits made mid-save would be lost. */}
+      <fieldset disabled={pending} className="contents">
+        {fixedParentId == null && (
+          <div className="flex flex-col gap-2">
+            <AreaPicker
+              isRequired
+              label="Parent area"
+              selected={pickedParent}
+              onSelectedChange={setPickedParent}
+              isInvalid={parentInvalid}
+              validationError={parentInvalid ? "Select a parent area." : undefined}
+            />
+          </div>
+        )}
+
+        <TextField className={FIELD_WIDTH_CLASS.long} value={name} onChange={setName} isRequired>
+          <Label>Name</Label>
+          <Input />
+        </TextField>
+
+        <TextField className="w-full" value={description} onChange={setDescription}>
+          <Label>Description</Label>
+          <TextArea placeholder="Describe the area…" rows={6} />
+        </TextField>
+
+        {error && <InlineAlert>{error}</InlineAlert>}
+
+        <Button type="submit" isDisabled={pending || !trimmedName} className="self-start">
+          Add area
+        </Button>
+      </fieldset>
+    </form>
+  );
+}

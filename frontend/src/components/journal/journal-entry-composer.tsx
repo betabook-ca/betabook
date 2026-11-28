@@ -4,15 +4,15 @@ import { Button } from "@heroui/react";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 
+import { DisciplineChip } from "@/components/climbing/discipline-chip";
+import { Grade } from "@/components/climbing/grade";
+import { GradeLabel } from "@/components/climbing/grade-label";
 import { EntryKindStep, type EntryKindChoice } from "@/components/journal/entry-kind-step";
 import type {
   CarriedEntry,
   JournalEntryFieldsProps,
 } from "@/components/journal/journal-entry-fields";
 import { JournalEntryForm } from "@/components/journal/journal-entry-form";
-import { DisciplineChip } from "@/components/ui/discipline-chip";
-import { Grade } from "@/components/ui/grade";
-import { GradeLabel } from "@/components/ui/grade-label";
 import { PageTitle } from "@/components/ui/typography";
 import type { ClimbWithAreaName } from "@/lib/catalog-types";
 import type { SearchFetcher } from "@/lib/search";

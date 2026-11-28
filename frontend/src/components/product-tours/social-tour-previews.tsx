@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 
-import { FeedTimeline } from "@/components/feed-timeline";
-import { FriendRequestBadge } from "@/components/friend-request-badge";
-import { FriendshipActionButton } from "@/components/friendship-action-button";
+import { FeedTimeline } from "@/components/feed/feed-timeline";
+import { FriendRequestBadge } from "@/components/friends/friend-request-badge";
+import { FriendshipActionButton } from "@/components/friends/friendship-action-button";
 import { TourChoices } from "@/components/product-tours/tour-choices";
 import { SectionNavigation } from "@/components/ui/section-navigation";
 import { SectionHeading } from "@/components/ui/typography";

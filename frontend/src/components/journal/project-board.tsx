@@ -8,6 +8,7 @@ import { PinProjectButton } from "@/components/journal/pin-project-button";
 import { ProjectCard, type ProjectWithSessions } from "@/components/journal/project-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FIELD_WIDTH_CLASS } from "@/components/ui/field";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { QueryInput } from "@/components/ui/query-input";
 import { SkeletonListRows } from "@/components/ui/skeleton";
@@ -167,7 +168,7 @@ export function ProjectBoard({
       </div>
 
       {error ? (
-        <p role="alert">{error}</p>
+        <InlineAlert>{error}</InlineAlert>
       ) : loading ? (
         <div aria-busy="true" aria-label="Loading projects">
           <SkeletonListRows rows={4} />

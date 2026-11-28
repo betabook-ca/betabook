@@ -189,7 +189,7 @@ test(
       .getByRole("button", { name: "Save layout", exact: true })
       .click();
     const volume = page.getByRole("article", { name: "Volume over time", exact: true });
-    await volume.getByRole("button", { name: "Days out", exact: true }).click();
+    await volume.getByRole("radio", { name: "Days out", exact: true }).click();
     const plot = volume.getByRole("group", { name: "Monthly days out", exact: true });
     await expect(plot).toBeVisible();
     const bounds = await plot.boundingBox();

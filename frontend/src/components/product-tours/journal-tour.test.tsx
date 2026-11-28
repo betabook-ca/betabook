@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 
-import { ProductTour } from "@/components/product-tour";
 import { JournalTourPage } from "@/components/product-tours/journal-tour";
+import { ProductTour } from "@/components/product-tours/product-tour";
 import { PRODUCT_TOURS } from "@/lib/product-tour";
 import {
   PRODUCT_TOUR_STEPS,
@@ -65,7 +65,7 @@ it.each(["full", "updates"] as const)(
   (mode) => {
     const html = demo("find-projects", mode);
     expect(html).toContain('aria-label="Find climbs"');
-    expect(html).toMatch(/aria-pressed="true"[^>]*>Climbs/);
+    expect(html).toMatch(/aria-checked="true"[^>]*>Climbs/);
     expect(html).toContain('data-tour-target="climb-filters"');
     // The area is preselected and the nameless list is already populated.
     expect(html).toContain("In area: Pine Canyon");
@@ -116,7 +116,7 @@ it("keeps Journal and Sends together without Progress tabs", () => {
 it.each(["full", "updates"] as const)("shows discovery on Search in the %s tour", (mode) => {
   const html = demo("find-climbers", mode);
   expect(html).toContain('aria-label="Search category"');
-  expect(html).toMatch(/aria-pressed="true"[^>]*>Climbers/);
+  expect(html).toMatch(/aria-checked="true"[^>]*>Climbers/);
   expect(html).toContain('data-tour-target="friend-search"');
   expect(html).toContain("Riley Chen");
   expect(html).toContain("Add friend");

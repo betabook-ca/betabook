@@ -4,7 +4,7 @@ import type { UseOverlayStateReturn } from "@heroui/react";
 import { useState } from "react";
 
 import { JournalEntryForm } from "@/components/journal/journal-entry-form";
-import { SendEditor } from "@/components/send-editor";
+import { SendEditor } from "@/components/sends/send-editor";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { PageTitle } from "@/components/ui/typography";
 import type { JournalEntry } from "@/lib/logbook-types";

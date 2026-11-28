@@ -2,10 +2,58 @@ import { useEffect, useEffectEvent, useState } from "react";
 
 import { TermsAcceptanceRequiredError } from "@/lib/action-result";
 import { AuthenticationRequiredError } from "@/lib/api-client";
+import {
+  forgetPageScope,
+  pageGeneration,
+  readPageCache,
+  writePageCache,
+} from "@/spa/lib/page-cache";
 import { useRouterRefreshKey } from "@/spa/lib/use-refresh-key";
 
-type Snapshot<T> = { scope: string; query: string; revision: number; data: T };
+/** `cached` marks data shown from an earlier visit while the loader runs
+ * again: "fresh" when nothing has changed since, "stale" when a mutation or an
+ * explicit refresh has happened since it was loaded. */
+type Snapshot<T> = {
+  scope: string;
+  query: string;
+  revision: number;
+  data: T;
+  cached?: "fresh" | "stale";
+};
 type Failure = { scope: string; query: string; revision: number; cause: unknown };
+
+function cachedSnapshot<T>(resource: string, scope: string, query: string, revision: number) {
+  const hit = readPageCache(resource, scope, query);
+  if (!hit) return null;
+  const snapshot: Snapshot<T> = {
+    scope,
+    query,
+    revision,
+    data: hit.data as T,
+    cached: hit.freshness,
+  };
+  return snapshot;
+}
+
+/** The server's bootstrap data when the page was loaded with it, else this
+ * page's remembered result. */
+type Remember = { cache: boolean; resource: string; query: string; revision: number };
+
+function rememberedSnapshot<T>(scope: string | null, remember: Remember): Snapshot<T> | null {
+  if (!scope || !remember.cache) return null;
+  return cachedSnapshot<T>(remember.resource, scope, remember.query, remember.revision);
+}
+
+function startingSnapshot<T>(
+  scope: string | null,
+  initial: (() => T | null) | undefined,
+  remember: Remember,
+): Snapshot<T> | null {
+  if (!scope) return null;
+  const data = initial?.();
+  if (data != null) return { scope, query: remember.query, revision: remember.revision, data };
+  return rememberedSnapshot<T>(scope, remember);
+}
 
 function invalidatesAccess(cause: unknown) {
   if (cause instanceof AuthenticationRequiredError || cause instanceof TermsAcceptanceRequiredError)
@@ -16,14 +64,21 @@ function invalidatesAccess(cause: unknown) {
 
 /** Keep the workspace mounted on filter changes. Full loads revalidate its
  * metadata after a mutation. Scope includes every identity or share credential
- * needed to display the snapshot. A late reply cannot revive a previous scope. */
+ * needed to display the snapshot. A late reply cannot revive a previous scope.
+ * `resource` names the loader, so pages sharing a scope keep separate results.
+ * Pass `cache: false` for a page whose forms copy their first data into state:
+ * a remembered result would seed them with values the reload can't replace. */
 export function useRetainedPage<T>({
+  resource,
   scope,
   query,
   initial,
   load,
   refine,
+  cache = true,
 }: {
+  resource: string;
+  cache?: boolean;
   scope: string | null;
   query: string;
   load: (signal: AbortSignal) => Promise<T>;
@@ -31,12 +86,12 @@ export function useRetainedPage<T>({
   refine?: (previous: T, previousQuery: string, signal: AbortSignal) => Promise<T>;
 }) {
   const revision = useRouterRefreshKey();
-  const [snapshot, setSnapshot] = useState<Snapshot<T> | null>(() => {
-    const data = scope ? initial?.() : null;
-    return scope && data != null ? { scope, query, revision, data } : null;
-  });
+  const remember = { cache, resource, query, revision };
+  const [snapshot, setSnapshot] = useState<Snapshot<T> | null>(() =>
+    startingSnapshot(scope, initial, remember),
+  );
   const [failure, setFailure] = useState<Failure | null>(null);
-  if (snapshot && snapshot.scope !== scope) setSnapshot(null);
+  if (snapshot && snapshot.scope !== scope) setSnapshot(rememberedSnapshot<T>(scope, remember));
   if (
     failure &&
     (failure.scope !== scope || failure.query !== query || failure.revision !== revision)
@@ -44,9 +99,15 @@ export function useRetainedPage<T>({
     setFailure(null);
   const current = snapshot?.scope === scope ? snapshot : null;
   const request = useEffectEvent(async (signal: AbortSignal): Promise<Snapshot<T> | null> => {
-    if (!scope || (current?.query === query && current.revision === revision)) return null;
+    if (!scope) return null;
+    if (current?.query === query && current.revision === revision && !current.cached) {
+      writePageCache(resource, current.scope, current.query, current.data, pageGeneration());
+      return null;
+    }
+    // A cached result is only a placeholder: reload it whole rather than
+    // refining it, since it may predate changes to the page's metadata.
     const data =
-      refine && current && current.revision === revision
+      refine && current && !current.cached && current.revision === revision
         ? await refine(current.data, current.query, signal)
         : await load(signal);
     return { scope, query, revision, data };
@@ -55,20 +116,25 @@ export function useRetainedPage<T>({
     if (!scope) return;
     const controller = new AbortController();
     async function update(target: string) {
+      const loadedAt = pageGeneration();
       try {
         const next = await request(controller.signal);
         if (!next || controller.signal.aborted) return;
         setSnapshot(next);
         setFailure(null);
+        writePageCache(resource, next.scope, next.query, next.data, loadedAt);
       } catch (cause) {
         if (controller.signal.aborted) return;
-        if (invalidatesAccess(cause)) setSnapshot(null);
+        if (invalidatesAccess(cause)) {
+          setSnapshot(null);
+          forgetPageScope(resource, target);
+        }
         setFailure({ scope: target, query, revision, cause });
       }
     }
     void update(scope);
     return () => controller.abort();
-  }, [scope, query, revision]);
+  }, [resource, scope, query, revision]);
   const error =
     failure?.scope === scope && failure.query === query && failure.revision === revision
       ? failure.cause
@@ -77,7 +143,9 @@ export function useRetainedPage<T>({
     data: current?.data,
     query: current?.query,
     pending: Boolean(
-      current && !error && (current.query !== query || current.revision !== revision),
+      current &&
+      !error &&
+      (current.query !== query || current.revision !== revision || current.cached === "stale"),
     ),
     error,
   };

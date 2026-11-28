@@ -3,9 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it } from "vitest";
 
+import { RatingField } from "@/components/climbing/rating-field";
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
 import { RatingRangeFilter } from "@/components/filters/min-rating-filter";
-import { RatingField } from "@/components/ui/rating-field";
 import { climbFilterToSearchParams, DEFAULT_CLIMB_FILTER } from "@/lib/filters/climb-filter";
 import type { ClimbFilterState } from "@/lib/filters/climb-filter-state";
 

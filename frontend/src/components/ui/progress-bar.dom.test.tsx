@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 
-import { ProgressBar } from "./progress-bar";
+import { AmountMeter, ProgressBar } from "./progress-bar";
 
 it.each([
   [12, "10"],
@@ -13,4 +13,13 @@ it.each([
     "aria-valuenow",
     expected,
   );
+});
+
+it("reports a measured amount as a meter, not a task's progress", () => {
+  render(<AmountMeter value={3} max={5} label="Train 5 times" />);
+  expect(screen.getByRole("meter", { name: "Train 5 times" })).toHaveAttribute(
+    "aria-valuenow",
+    "3",
+  );
+  expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 });

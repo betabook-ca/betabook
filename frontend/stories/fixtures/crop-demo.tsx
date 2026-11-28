@@ -1,7 +1,7 @@
 import { useOverlayState } from "@heroui/react";
 import { useEffect, useState } from "react";
 
-import { ProfilePhotoCropper } from "@/components/profile-photo-cropper";
+import { ProfilePhotoCropper } from "@/components/account/profile-photo-cropper";
 
 /** A landscape photo drawn on a canvas, so the example needs no binary
  * fixture and cropping it has a visible effect: the quadrants and the centre

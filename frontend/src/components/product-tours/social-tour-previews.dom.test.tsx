@@ -11,7 +11,7 @@ it("filters the real feed display locally without exposing sample destinations",
   expect(screen.getByText("Flash", { exact: true })).toBeVisible();
   expect(screen.getByText("Session", { exact: true })).toBeVisible();
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Sends" }));
+  await user.click(screen.getByRole("radio", { name: "Sends" }));
   expect(screen.getAllByRole("article")).toHaveLength(1);
   expect(screen.getByRole("article", { name: "Moss Ladder" })).toBeVisible();
   expect(screen.queryByText("Training", { exact: true })).not.toBeInTheDocument();

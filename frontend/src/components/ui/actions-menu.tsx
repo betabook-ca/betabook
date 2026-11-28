@@ -1,10 +1,9 @@
 "use client";
 
-import { Button, Menu, Tooltip } from "@heroui/react";
+import { Button, Dropdown, type Menu, Tooltip } from "@heroui/react";
 import { clsx } from "clsx";
 import { MoreHorizontal, Pencil } from "lucide-react";
 import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
-import { MenuTrigger, Popover } from "react-aria-components";
 
 import { useRowActions } from "@/components/ui/row-actions";
 
@@ -19,13 +18,8 @@ type ActionsMenuProps = {
   tooltip?: string;
 };
 
-/** The "..." actions menu used by area/climb/send actions menus — composed
- * from react-aria-components' raw MenuTrigger/Popover rather than HeroUI's
- * styled Popover: HeroUI doesn't export a combined trigger for Menu, and its
- * <Popover.Content> only picks up its background/shadow styling via a
- * <Popover.Root> (DialogTrigger) ancestor — which would conflict with
- * MenuTrigger's own trigger/overlay wiring. `.popover` below is the same
- * global class that slot resolves to, applied directly.
+/** The "..." actions menu used by area/climb/send actions menus, on HeroUI's
+ * Dropdown (its MenuTrigger, popover and menu).
  *
  * In a row's actions slot the button is a pencil that pointer screens show
  * only while the row is hovered or focused, so a list isn't a column of
@@ -73,7 +67,7 @@ export function ActionsMenu({
     </Button>
   );
   return (
-    <MenuTrigger
+    <Dropdown
       isOpen={isOpen}
       onOpenChange={(open) => {
         if (open) setOpenedByRow(false);
@@ -93,13 +87,13 @@ export function ActionsMenu({
        * right, so near the screen's right edge a long item wrapped, the
        * positioner moved the menu left, it widened, and the cycle repeated
        * (a ResizeObserver loop). Capped so a very long item still wraps. */}
-      <Popover
-        className="popover w-max max-w-[calc(100vw-2rem)] motion-reduce:animate-none dark:rounded-panel dark:border dark:border-border"
+      <Dropdown.Popover
+        className="w-max max-w-[calc(100vw-2rem)] motion-reduce:animate-none"
         placement={openedByRow ? "bottom" : "bottom end"}
         triggerRef={openedByRow ? row?.anchorRef : undefined}
       >
-        <Menu.Root onAction={onAction}>{children}</Menu.Root>
-      </Popover>
-    </MenuTrigger>
+        <Dropdown.Menu onAction={onAction}>{children}</Dropdown.Menu>
+      </Dropdown.Popover>
+    </Dropdown>
   );
 }

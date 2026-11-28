@@ -172,7 +172,7 @@ it("draws a sticker when chosen", async () => {
   render(<TripShareImage content={CONTENT} stats={STATS} render={renderImage} />);
   const dialog = await open(user);
 
-  await user.click(within(dialog).getByRole("button", { name: "Sticker" }));
+  await user.click(within(dialog).getByRole("radio", { name: "Sticker" }));
   await within(dialog).findByRole("img", { name: /^Preview/ });
   expect(renderImage).toHaveBeenLastCalledWith(expect.anything(), "sticker");
 });
@@ -188,8 +188,8 @@ it("shows only the latest preview when draws finish out of order", async () => {
   const dialog = await open(user);
 
   // The sticker draw stalls; switching back to story draws again and wins.
-  await user.click(within(dialog).getByRole("button", { name: "Sticker" }));
-  await user.click(within(dialog).getByRole("button", { name: /^Story/ }));
+  await user.click(within(dialog).getByRole("radio", { name: "Sticker" }));
+  await user.click(within(dialog).getByRole("radio", { name: /^Story/ }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Download" })).toBeEnabled());
   const preview = within(dialog).getByRole("img", { name: /^Preview/ });
   // The first draw made preview-1; the third, which won, made preview-2.

@@ -3,7 +3,7 @@
 import type { UseOverlayStateReturn } from "@heroui/react";
 import { useState, useTransition } from "react";
 
-import { ClimbPicker } from "@/components/climb-picker";
+import { ClimbPicker } from "@/components/climbs/climb-picker";
 import { ProjectSuggestionList } from "@/components/journal/project-suggestion-list";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";

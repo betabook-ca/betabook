@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import AccountLoading from "@/components/account-loading";
+import AccountLoading from "@/components/account/account-loading";
+import { FeedLoading } from "@/components/app-shell/workspace-loading";
 import { cardClass, FORM_CARD_CLASS, SURFACE_CARD_CLASS } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";
 import { SidebarLayout } from "@/components/ui/page-shell";
-import { FeedLoading } from "@/components/workspace-loading";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 
 const meta = { title: "Patterns/Layout and feedback", component: StoryPage } satisfies Meta<

@@ -3,10 +3,10 @@ import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { StaticRouter } from "react-router";
 
-import { SidebarLayout } from "@/components/app-sidebar";
-import { Brand } from "@/components/brand";
-import { HomeIntroduction } from "@/components/home-introduction";
-import { TermsContent } from "@/components/terms-content";
+import { SidebarLayout } from "@/components/app-shell/app-sidebar";
+import { Brand } from "@/components/app-shell/brand";
+import { HomeIntroduction } from "@/components/landing/home-introduction";
+import { TermsContent } from "@/components/terms/terms-content";
 import { CARD_PADDING } from "@/components/ui/card";
 import { FIELD_CLASS, FIELD_HEIGHT_CLASS, FIELD_WIDTH_CLASS } from "@/components/ui/field";
 import { PAGE_MAX_WIDTH_CLASS } from "@/components/ui/layout";

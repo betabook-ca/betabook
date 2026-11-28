@@ -1,8 +1,8 @@
 import { Button } from "@heroui/react";
 import { useState } from "react";
 
-import { ClimbPicker } from "@/components/climb-picker";
-import { FriendshipActionButton } from "@/components/friendship-action-button";
+import { ClimbPicker } from "@/components/climbs/climb-picker";
+import { FriendshipActionButton } from "@/components/friends/friendship-action-button";
 import { SearchController } from "@/components/search/search-controller";
 import {
   climberSuggestionItems,

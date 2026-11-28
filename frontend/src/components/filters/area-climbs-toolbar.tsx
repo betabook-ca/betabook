@@ -1,6 +1,6 @@
 "use client";
 
-import { ClimbListSortControl } from "@/components/climb-list-sort-control";
+import { ClimbListSortControl } from "@/components/climbs/climb-list-sort-control";
 import { statsActiveFilters, textActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbStatsFields } from "@/components/filters/climb-stats-filter-fields";
 import { FilterToolbar } from "@/components/filters/filter-toolbar";

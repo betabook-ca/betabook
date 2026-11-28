@@ -1,9 +1,8 @@
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
 
-import { ActivityIcon, type ActivityKind } from "@/components/ui/activity-icon";
-import { AppLink } from "@/components/ui/app-link";
-import { ClampedComment } from "@/components/ui/clamped-comment";
+import { ActivityIcon, type ActivityKind } from "@/components/climbing/activity-icon";
+import { RowComment, RowTitleLink } from "@/components/ui/list-row";
 import { rowActionsClass, RowActionsProvider, useLongPressRow } from "@/components/ui/row-actions";
 import { formatDate, formatMonth, formatWeekday } from "@/lib/format-date";
 
@@ -87,10 +86,9 @@ export function JournalEntryLayout({
         <div className="flex min-w-0 flex-1 items-baseline gap-x-3">
           <div className="min-w-0 flex-1 text-base leading-6 font-bold [overflow-wrap:anywhere]">
             {href ? (
-              <AppLink href={href} className="static block leading-6 font-bold">
-                <span aria-hidden className="absolute inset-0" />
+              <RowTitleLink href={href} className="leading-6 font-bold">
                 {title}
-              </AppLink>
+              </RowTitleLink>
             ) : (
               title
             )}
@@ -211,11 +209,7 @@ function EntryBody({
 }) {
   return (
     <>
-      {comment && (
-        <div className="relative z-10 mt-1.5 max-w-prose text-sm leading-[1.5] [overflow-wrap:anywhere]">
-          <ClampedComment>{comment}</ClampedComment>
-        </div>
-      )}
+      {comment && <RowComment className="mt-1.5">{comment}</RowComment>}
       {tags && (
         <div className="relative z-10 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
           {tags}

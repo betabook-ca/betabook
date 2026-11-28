@@ -1,5 +1,5 @@
-import { AnalyticsDashboard, buildStatTiles } from "@/components/analytics-dashboard";
-import { DisciplineScopeNav } from "@/components/discipline-scope-nav";
+import { AnalyticsDashboard, buildStatTiles } from "@/components/analytics/analytics-dashboard";
+import { DisciplineScopeNav } from "@/components/analytics/discipline-scope-nav";
 import { TripShareImage } from "@/components/trips/trip-share-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import { buildAnalyticsHighlights } from "@/lib/analytics-highlights";

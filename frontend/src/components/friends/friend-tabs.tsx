@@ -1,0 +1,35 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+
+import { FriendRequestBadge } from "@/components/friends/friend-request-badge";
+import { useFriendRequests } from "@/components/friends/friend-requests-provider";
+import { SectionNavigation } from "@/components/ui/section-navigation";
+import type { FriendsView } from "@/lib/friendships";
+
+export function FriendTabs({ view, userId }: { view: FriendsView; userId: string }) {
+  const requests = useFriendRequests();
+  const previousView = useRef(view);
+  useEffect(() => {
+    if (previousView.current !== view) {
+      previousView.current = view;
+      void requests.refresh({ ifStale: true });
+    }
+  }, [view, requests]);
+
+  return (
+    <SectionNavigation
+      appearance="pills"
+      label="Friend lists"
+      tabs={[
+        { href: "/friends", label: "Friends", current: view === "friends" },
+        {
+          href: "/friends?view=requests",
+          label: "Requests",
+          current: view === "requests",
+          badge: <FriendRequestBadge count={requests.userId === userId ? requests.count : null} />,
+        },
+      ]}
+    />
+  );
+}

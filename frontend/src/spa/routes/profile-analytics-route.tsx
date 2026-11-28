@@ -1,9 +1,10 @@
 import { useParams, useSearchParams } from "react-router";
 
-import { AnalyticsLoading } from "@/components/analytics-loading";
-import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { ProfileAnalyticsDashboard } from "@/components/profile-analytics-view";
-import { useGradePreferences } from "@/components/ui/grade-preferences";
+import { AnalyticsLoading } from "@/components/analytics/analytics-loading";
+import { ProfileAnalyticsDashboard } from "@/components/analytics/profile-analytics-view";
+import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
+import { useGradePreferences } from "@/components/climbing/grade-preferences";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import type { HighlightSession } from "@/lib/analytics-highlights";
 import { parseAnalyticsLayout } from "@/lib/analytics-layout";
 import type { AnalyticsSessionRow } from "@/lib/analytics-types";
@@ -40,6 +41,7 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
     tags.map((tag): [string, string] => ["tag", tag]),
   ).toString();
   const { data, error, pending } = useRetainedPage({
+    resource: "profile-analytics:ProfileAnalyticsRoute",
     scope: id && viewerId ? JSON.stringify([id, viewerId]) : null,
     query: tagQuery,
     load: (signal) =>
@@ -57,7 +59,7 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
       ? "Climber not found"
       : "Could not load analytics."
     : null;
-  if (!data) return message ? <p role="alert">{message}</p> : <AnalyticsLoading />;
+  if (!data) return message ? <InlineAlert>{message}</InlineAlert> : <AnalyticsLoading />;
   const { header, rows, highlightSessions, overview } = data;
   const journalSessions = sessionCounts(highlightSessions);
   const disciplines = search.getAll("discipline");
@@ -80,7 +82,7 @@ export default function ProfileAnalyticsRoute({ viewerId }: { viewerId: string |
     : [];
   return (
     <>
-      {message && <p role="alert">{message}</p>}
+      {message && <InlineAlert>{message}</InlineAlert>}
       <ProfileAnalyticsDashboard
         {...common}
         userId={header.user.id}

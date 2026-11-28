@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { useReportNavigationPending } from "@/components/navigation-pending";
+import { useReportNavigationPending } from "@/components/app-shell/navigation-pending";
 import { useDebouncedReplace } from "@/hooks/use-debounced-replace";
 
 /** Keep local edits responsive while the URL owns committed filter state.

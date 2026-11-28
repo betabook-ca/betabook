@@ -1,8 +1,9 @@
 import { useParams, useSearchParams } from "react-router";
 
-import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
+import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
+import { ClimberNotFound } from "@/components/profile/climber-not-found";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { SkeletonListRows } from "@/components/ui/skeleton";
-import { PageTitle } from "@/components/ui/typography";
 import { fetchApi } from "@/spa/lib/api";
 import { usePageTitle } from "@/spa/lib/document-navigation";
 import { isNotFoundError } from "@/spa/lib/fetch-json";
@@ -24,6 +25,7 @@ export default function UserJournalRoute({ viewerId }: { viewerId: string | null
     pending,
     error,
   } = useRetainedPage({
+    resource: "user-journal:UserJournalRoute",
     scope: viewerId && id ? JSON.stringify([viewerId, id]) : null,
     query,
     load,
@@ -42,14 +44,7 @@ export default function UserJournalRoute({ viewerId }: { viewerId: string | null
   );
   if (!viewerId) return <CurrentPageAuthCallout />;
   if (!id || isNotFoundError(error))
-    return (
-      <div className="py-8 text-center">
-        <PageTitle>Climber not found</PageTitle>
-        <p className="mt-2 text-sm text-muted">
-          No climber profile or journal is available at this URL.
-        </p>
-      </div>
-    );
+    return <ClimberNotFound message="No climber profile or journal is available at this URL." />;
   const message = error
     ? error instanceof Error
       ? error.message
@@ -57,7 +52,7 @@ export default function UserJournalRoute({ viewerId }: { viewerId: string | null
     : null;
   if (!data)
     return message ? (
-      <p role="alert">{message}</p>
+      <InlineAlert>{message}</InlineAlert>
     ) : (
       <SkeletonListRows rows={4} className="max-md:min-h-svh" />
     );

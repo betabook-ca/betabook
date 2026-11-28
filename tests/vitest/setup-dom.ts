@@ -3,6 +3,8 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 
+import { clearPageCache } from "@/spa/lib/page-cache";
+
 beforeEach(() => {
   // jsdom has no layout or scrolling. Keyboard selection still runs the real
   // component effect; Playwright owns scroll position and viewport assertions.
@@ -22,5 +24,7 @@ beforeEach(() => {
 // Vitest globals are disabled, so register React cleanup explicitly.
 afterEach(() => {
   cleanup();
+  // Route loaders remember results across mounts; each test starts cold.
+  clearPageCache();
   vi.unstubAllGlobals();
 });

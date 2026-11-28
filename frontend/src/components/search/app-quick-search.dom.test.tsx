@@ -76,10 +76,10 @@ it("reopening member quick search resets its query and category", async () => {
   const props = { onOpenChange: () => {}, onNavigate: () => {} };
   const { rerender } = render(<AppQuickSearch {...props} isOpen />);
   await user.type(screen.getByRole("combobox", { name: "Search Betabook" }), "previous query");
-  await user.click(screen.getByRole("button", { name: "Climbs" }));
+  await user.click(screen.getByRole("radio", { name: "Climbs" }));
   rerender(<AppQuickSearch {...props} isOpen={false} />);
   rerender(<AppQuickSearch {...props} isOpen />);
   expect(screen.getByRole("combobox", { name: "Search Betabook" })).toHaveValue("");
-  expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("radio", { name: "All" })).toHaveAttribute("aria-checked", "true");
   expect(screen.queryByRole("option")).not.toBeInTheDocument();
 });

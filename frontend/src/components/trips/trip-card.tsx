@@ -5,8 +5,7 @@ import type { ReactNode } from "react";
 import { TripCompanions } from "@/components/trips/trip-companions";
 import { TripStats } from "@/components/trips/trip-stats";
 import { TripStatusChip } from "@/components/trips/trip-status-chip";
-import { AppLink } from "@/components/ui/app-link";
-import { cardClass } from "@/components/ui/card";
+import { IndexCard } from "@/components/ui/index-card";
 import type { TripSummary } from "@/lib/logbook-types";
 import { formatTripDates, tripHref } from "@/lib/trips";
 
@@ -28,29 +27,19 @@ export function TripCard({
   const href = tripHref(userId, trip.id);
 
   return (
-    <li className={`flex flex-col gap-3 ${cardClass("sm", "bordered")}`}>
-      <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <AppLink href={href} className="font-medium">
-              {trip.name}
-            </AppLink>
-            <TripStatusChip trip={trip} today={today} />
-          </div>
-          <p className="text-sm text-muted">{formatTripDates(trip.startDate, trip.endDate)}</p>
-        </div>
-        {actions}
-      </div>
-
-      {trip.description && (
-        <p className="line-clamp-2 text-sm leading-relaxed">{trip.description}</p>
-      )}
-
+    <IndexCard
+      title={trip.name}
+      href={href}
+      badge={<TripStatusChip trip={trip} today={today} />}
+      summary={formatTripDates(trip.startDate, trip.endDate)}
+      actions={actions}
+      description={trip.description}
+    >
       <TripCompanions tripId={trip.id} initialCompanions={trip.companions} />
 
       {/* Read through the same SQL the trip's own tabs use, so the card cannot
        * promise a number the page behind it contradicts. */}
       <TripStats trip={trip} />
-    </li>
+    </IndexCard>
   );
 }

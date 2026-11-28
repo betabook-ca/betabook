@@ -1,10 +1,10 @@
 "use client";
 
+import { NavigationPendingRegion } from "@/components/app-shell/navigation-pending";
 import { DatedLogbookRows } from "@/components/journal/dated-logbook-rows";
 import { fetchJournalPage } from "@/components/journal/fetch-journal-page";
 import { JournalEntryRow } from "@/components/journal/journal-entry-row";
 import { LogEntryButton } from "@/components/journal/log-entry-button";
-import { NavigationPendingRegion } from "@/components/navigation-pending";
 import { AppLink } from "@/components/ui/app-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadMoreButton } from "@/components/ui/load-more-button";

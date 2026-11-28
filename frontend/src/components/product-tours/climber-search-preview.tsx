@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { FriendshipActionButton } from "@/components/friendship-action-button";
+import { FriendshipActionButton } from "@/components/friends/friendship-action-button";
 import { demoAreaFetcher } from "@/components/product-tours/climb-search-preview";
 import { SearchController } from "@/components/search/search-controller";
 import { AppLink } from "@/components/ui/app-link";

@@ -8,7 +8,7 @@ import { toArray, type UrlParamsRecord } from "@/lib/url-params";
 
 /** Saved climb lists: "Red River classics", "Bishop wishlist". Not the area
  * page's climb list, which is `lib/climb-list-sort.ts` and
- * `components/climb-list.tsx`. */
+ * `components/climbs/climb-list.tsx`. */
 
 export const MAX_CLIMB_LIST_TITLE = 80;
 /** The column's CHECK allows 5,000, so this can rise without a migration. */

@@ -27,6 +27,7 @@
     "climbs_data/**",
     ".claude/**",
     ".agents/skills/github-upload-image-to-pr/**",
+    ".agents/skills/heroui-*/**",
     "backend/migrations/**",
     "worker-configuration.d.ts",
     "next-env.d.ts",

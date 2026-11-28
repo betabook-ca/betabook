@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
 
-import { GradePreferencesProvider } from "@/components/ui/grade-preferences";
+import { GradePreferencesProvider } from "@/components/climbing/grade-preferences";
 import { DEFAULT_DISCIPLINE_FILTER } from "@/lib/filters/discipline-filter";
 
 import { FilterToolbar } from "./filter-toolbar";

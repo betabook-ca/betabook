@@ -402,10 +402,10 @@ export function QuickSearchDialog({
   );
   return (
     <Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
-      <Modal.Container placement="top" size="lg" className="p-0 sm:p-4 sm:pt-12">
+      <Modal.Container placement="top" size="lg" className="p-0 md:p-4 md:pt-12">
         <Modal.Dialog
           aria-label="Search Betabook"
-          className="max-h-full rounded-none sm:max-h-[85dvh] sm:rounded-panel"
+          className="max-h-full rounded-none md:max-h-[85dvh] md:rounded-panel"
         >
           {/* This row holds one word and one button, and with a keyboard up
            * it costs about a fifth of the remaining height. Cancel moves

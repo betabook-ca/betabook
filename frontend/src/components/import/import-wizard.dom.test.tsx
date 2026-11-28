@@ -131,7 +131,7 @@ it("loads KAYA routes into matching and review with visible style limitations", 
       ),
   );
   render(<ImportWizard profileHref="/users/local" />);
-  await userEvent.click(screen.getByRole("button", { name: "KAYA" }));
+  await userEvent.click(screen.getByRole("radio", { name: "KAYA" }));
   await userEvent.type(
     screen.getByRole("textbox", { name: "KAYA username or profile link" }),
     "https://kaya-app.kayaclimb.com/user/suzilu",
@@ -166,7 +166,7 @@ it("loads a Mountain Project tick export into matching and review", async () => 
     ),
   );
   render(<ImportWizard profileHref="/users/local" />);
-  await userEvent.click(screen.getByRole("button", { name: "Mountain Project" }));
+  await userEvent.click(screen.getByRole("radio", { name: "Mountain Project" }));
   await userEvent.type(
     screen.getByRole("textbox", { name: "Mountain Project user ID or profile link" }),
     "https://www.mountainproject.com/user/200226064/eric-bonilla/ticks",
@@ -271,15 +271,15 @@ it("reports a post-break ascent as unable to import, with one explanation and no
 it("disables competing import sources while KAYA is loading and releases them on cancel", async () => {
   vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockReturnValue(new Promise(() => {})));
   render(<ImportWizard profileHref="/users/local" />);
-  await userEvent.click(screen.getByRole("button", { name: "KAYA" }));
+  await userEvent.click(screen.getByRole("radio", { name: "KAYA" }));
   await userEvent.type(
     screen.getByRole("textbox", { name: "KAYA username or profile link" }),
     "suzilu",
   );
   await userEvent.click(screen.getByRole("button", { name: "Load sends" }));
-  expect(screen.getByRole("button", { name: "Sendage" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "CSV file" })).toBeDisabled();
+  expect(screen.getByRole("radio", { name: "Sendage" })).toBeDisabled();
+  expect(screen.getByRole("radio", { name: "CSV file" })).toBeDisabled();
   await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(screen.getByRole("button", { name: "Sendage" })).toBeEnabled();
-  expect(screen.getByRole("button", { name: "CSV file" })).toBeEnabled();
+  expect(screen.getByRole("radio", { name: "Sendage" })).toBeEnabled();
+  expect(screen.getByRole("radio", { name: "CSV file" })).toBeEnabled();
 });

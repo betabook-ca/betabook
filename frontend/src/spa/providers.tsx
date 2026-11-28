@@ -3,7 +3,7 @@
 import { useTheme } from "@heroui/react";
 import { RouterProvider } from "react-aria-components";
 
-import { FriendRequestsProvider } from "@/components/friend-requests-provider";
+import { FriendRequestsProvider } from "@/components/friends/friend-requests-provider";
 import { useRouter } from "@/spa/lib/navigation";
 
 export function Providers({ children }: { children: React.ReactNode }) {

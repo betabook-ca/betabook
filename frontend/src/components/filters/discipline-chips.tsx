@@ -1,7 +1,11 @@
 "use client";
 
+import {
+  DISCIPLINE_CHIP_CLASSNAME,
+  DISCIPLINE_LABELS,
+} from "@/components/climbing/discipline-chip";
 import { choicePillClass } from "@/components/ui/choice-pill";
-import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
+import { ChoicePills } from "@/components/ui/choice-pills";
 import { FILTER_PILL_CLASS } from "@/components/ui/field";
 import type { Discipline } from "@/lib/grades";
 
@@ -26,29 +30,22 @@ export function DisciplineChips({
   single?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1.5" role="group" aria-label="Disciplines">
-      {DISCIPLINES.map((discipline) => {
-        const selected = value.includes(discipline);
-        return (
-          <button
-            key={discipline}
-            type="button"
-            aria-pressed={selected}
-            onClick={() =>
-              onChange(
-                selected
-                  ? value.filter((d) => d !== discipline)
-                  : single
-                    ? [discipline]
-                    : [...value, discipline],
-              )
-            }
-            className={`${choicePillClass(selected, DISCIPLINE_CHIP_CLASSNAME[discipline])} ${FILTER_PILL_CLASS}`}
-          >
-            {DISCIPLINE_LABELS[discipline]}
-          </button>
-        );
-      })}
-    </div>
+    <ChoicePills
+      label="Disciplines"
+      selectionMode="multiple"
+      value={value}
+      onChange={(next) => {
+        const added = next.find((discipline) => !value.includes(discipline));
+        onChange(single && added ? [added] : next);
+      }}
+      options={DISCIPLINES.map((discipline) => ({
+        value: discipline,
+        label: DISCIPLINE_LABELS[discipline],
+      }))}
+      pillClass={(selected, discipline) =>
+        `${choicePillClass(selected, DISCIPLINE_CHIP_CLASSNAME[discipline])} ${FILTER_PILL_CLASS}`
+      }
+      className="flex items-center gap-1.5"
+    />
   );
 }

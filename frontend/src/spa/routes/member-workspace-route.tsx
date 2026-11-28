@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useParams } from "react-router";
 
+import { WorkspaceShell } from "@/components/app-shell/workspace-shell";
 import { SkeletonListRows } from "@/components/ui/skeleton";
-import { WorkspaceShell } from "@/components/workspace-shell";
 import { primaryAreaForPath } from "@/lib/app-navigation";
 import { PageErrorBoundary } from "@/spa/lib/render-error-boundary";
 

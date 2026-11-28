@@ -11,6 +11,7 @@ const other = "Cedar Arete, Coast Range / Cedar Grove";
 const crack = "Cedar Crack, North Woods / Upper Wall";
 const traverse = "Cedar Traverse, North Woods / Lower boulders";
 const button = (name: string) => screen.getByRole("button", { name });
+const categoryPill = (name: string) => screen.getByRole("radio", { name });
 const result = (name: string) => screen.findByRole("button", { name: `Open ${name}` });
 async function quick() {
   const user = userEvent.setup();
@@ -22,7 +23,7 @@ async function quick() {
 it("never offers to narrow to an area from the quick dialog", async () => {
   const user = await quick();
   for (const category of ["Climbs", "Areas", "Climbers"]) {
-    await user.click(button(category));
+    await user.click(categoryPill(category));
     expect(screen.queryByRole("button", { name: /Climbs in / })).not.toBeInTheDocument();
   }
   // Narrowing by area belongs to the full page, which has a real area
@@ -54,7 +55,7 @@ it("clears quick results and keeps only the input placeholder in every category"
   expect(await screen.findByRole("option", { name: /Cedar Lee/ })).toBeInTheDocument();
   await user.click(button("Clear search betabook"));
   for (const category of ["Climbs", "Areas", "Climbers"]) {
-    await user.click(button(category));
+    await user.click(categoryPill(category));
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
     expect(
       screen.queryByText(`Search ${category.toLowerCase()} by name.`, { exact: true }),
@@ -64,7 +65,7 @@ it("clears quick results and keeps only the input placeholder in every category"
       `Search ${category.toLowerCase()}…`,
     );
   }
-  await user.click(button("Climbs"));
+  await user.click(categoryPill("Climbs"));
   expect(screen.queryByRole("option")).not.toBeInTheDocument();
 });
 
@@ -80,7 +81,7 @@ it("full search clears mixed results until typing resumes, but the climb list br
   await waitFor(() => expect(screen.getByRole("button", { name: `Open ${crack}` })).toBeEnabled());
   expect(screen.queryByRole("button", { name: `Open ${local}` })).not.toBeInTheDocument();
   // Climbs: a nameless list is the catalog under the filters, for finding a project.
-  await user.click(button("Climbs"));
+  await user.click(categoryPill("Climbs"));
   await user.click(button("Clear search betabook"));
   expect(await result(local)).toBeEnabled();
   expect(await result(crack)).toBeEnabled();
@@ -104,7 +105,7 @@ it("full climb search filters by a looked-up area and the quick palette never br
 
 it("quick search keeps waiting for a name in every category", async () => {
   const user = await quick();
-  await user.click(button("Climbs"));
+  await user.click(categoryPill("Climbs"));
   await user.click(button("Clear search betabook"));
   expect(screen.queryByRole("option")).not.toBeInTheDocument();
   expect(screen.queryByRole("combobox", { name: "In area" })).not.toBeInTheDocument();
@@ -112,11 +113,11 @@ it("quick search keeps waiting for a name in every category", async () => {
 
 it("expanding quick search preserves the query and category", async () => {
   const user = await quick();
-  await user.click(button("Climbs"));
+  await user.click(categoryPill("Climbs"));
   await user.click(button("View all results for “cedar”"));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(screen.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("cedar");
-  expect(button("Climbs")).toHaveAttribute("aria-pressed", "true");
+  expect(categoryPill("Climbs")).toHaveAttribute("aria-checked", "true");
   expect(await result(local)).toBeEnabled();
   expect(await result(other)).toBeEnabled();
 });
@@ -165,7 +166,7 @@ it("paginates, filters, resets and changes categories using the actual results",
   const user = userEvent.setup();
   render(<IntegratedSearchDemo />);
   await waitFor(() => expect(button("Open Cedar Lee, Climbing partner")).toBeEnabled());
-  await user.click(button("Climbs"));
+  await user.click(categoryPill("Climbs"));
   await user.click(await screen.findByRole("button", { name: "Load more" }));
   expect(await result(traverse)).toBeEnabled();
   await user.click(button("Boulder"));
@@ -177,7 +178,7 @@ it("paginates, filters, resets and changes categories using the actual results",
   await user.click(button("Clear all"));
   expect(screen.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("");
   await user.type(screen.getByRole("searchbox", { name: "Search Betabook" }), "cedar");
-  await user.click(button("Climbers"));
+  await user.click(categoryPill("Climbers"));
   await waitFor(() => expect(button("Open Cedar Lee, Climbing partner")).toBeEnabled());
   await user.click(button("Clear search betabook"));
   expect(screen.getByRole("searchbox", { name: "Search Betabook" })).toHaveValue("");
@@ -197,7 +198,7 @@ it("retries a failed category while retaining successful results", async () => {
 it("retries a failed next page and appends records without replacing or duplicating earlier results", async () => {
   const user = userEvent.setup();
   render(<IntegratedSearchDemo pageFailure />);
-  await user.click(button("Climbs"));
+  await user.click(categoryPill("Climbs"));
   expect(await result(local)).toBeEnabled();
   await user.click(button("Load more"));
   expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load more");
@@ -211,7 +212,7 @@ it("retries a failed next page and appends records without replacing or duplicat
 it("sort and expanded grade/rating controls refine results and reset restores them", async () => {
   const user = userEvent.setup();
   render(<IntegratedSearchDemo />);
-  await user.click(button("Climbs"));
+  await user.click(categoryPill("Climbs"));
   expect(await result(local)).toBeEnabled();
   // Search opens on most ascents first, so reaching Z–A means picking the
   // name field before flipping direction.
@@ -276,7 +277,7 @@ it("suggests climbers you may know only while the full climber search is empty",
     "climber-suggested-2",
   );
 
-  await user.click(button("Climbs"));
+  await user.click(categoryPill("Climbs"));
   expect(screen.queryByRole("region", { name: "You may know" })).not.toBeInTheDocument();
   expect(screen.queryByText("Search climbs by name.", { exact: true })).not.toBeInTheDocument();
 });

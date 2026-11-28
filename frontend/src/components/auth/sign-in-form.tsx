@@ -1,0 +1,165 @@
+"use client";
+
+import { Button, Input, Label, TextField } from "@heroui/react";
+import { useState } from "react";
+
+import { AuthDivider, ResendVerificationButton } from "@/components/auth/auth-form-parts";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { useTurnstile } from "@/components/auth/turnstile";
+import { AppLink } from "@/components/ui/app-link";
+import { FORM_CARD_CLASS } from "@/components/ui/card";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { PageTitle } from "@/components/ui/typography";
+import { GENERIC_ERROR_MESSAGE } from "@/lib/action-result";
+import { authClient } from "@/lib/auth-client";
+import { DEFAULT_SIGNED_IN_PATH, safeNextPath, signUpUrl } from "@/lib/sign-in-redirect";
+import { termsHref } from "@/lib/terms";
+import { useRouter } from "@/spa/lib/navigation";
+
+export function SignInForm({
+  next,
+  googleEnabled = false,
+  initialError,
+  turnstileSiteKey,
+}: {
+  next?: string;
+  googleEnabled?: boolean;
+  initialError?: string | null;
+  turnstileSiteKey?: string | null;
+}) {
+  const router = useRouter();
+  // The page already validates the param, but re-validate the prop here so
+  // the form can never be handed an off-origin destination.
+  const nextPath = safeNextPath(next);
+  const captcha = useTurnstile(turnstileSiteKey);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(initialError ?? null);
+  // The address an unverified-login error came back for. The resend
+  // affordance is bound to this, not to whatever is currently typed in the
+  // email field.
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  // The server's generic credential error covers unknown emails too, so it also
+  // offers account creation without revealing which field was wrong.
+  const [invalidCredentials, setInvalidCredentials] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const attemptedEmail = email;
+    setError(null);
+    setUnverifiedEmail(null);
+    setInvalidCredentials(false);
+    setPending(true);
+    try {
+      await authClient.signIn.email(
+        { email: attemptedEmail, password },
+        {
+          headers: captcha.headers,
+          onSuccess: (ctx) => {
+            const userDestination =
+              ctx.data && typeof ctx.data === "object" && "user" in ctx.data && ctx.data.user
+                ? `/users/${(ctx.data.user as { id: string }).id}`
+                : DEFAULT_SIGNED_IN_PATH;
+            router.push(nextPath ?? userDestination);
+          },
+          onError: (ctx) => {
+            // A failed captcha is also a 403.
+            if (ctx.error.code === "EMAIL_NOT_VERIFIED") {
+              setUnverifiedEmail(attemptedEmail);
+            } else {
+              setInvalidCredentials(ctx.error.code === "INVALID_EMAIL_OR_PASSWORD");
+              setError(ctx.error.message ?? "Sign in failed");
+            }
+          },
+          onResponse: () => {
+            setPending(false);
+            captcha.reset();
+          },
+        },
+      );
+    } catch {
+      setError(GENERIC_ERROR_MESSAGE);
+      setPending(false);
+      captcha.reset();
+    }
+  }
+
+  function handleEmailChange(value: string) {
+    setEmail(value);
+    // The unverified prompt refers to the attempted address; once the field
+    // is edited it no longer applies.
+    setUnverifiedEmail(null);
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className={FORM_CARD_CLASS}>
+      <PageTitle>Sign in</PageTitle>
+      {googleEnabled && (
+        <>
+          <p className="text-sm text-muted">
+            By continuing with Google, you agree to the{" "}
+            <AppLink
+              href={termsHref()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline underline"
+            >
+              Terms of Service
+            </AppLink>
+            .
+          </p>
+          <GoogleSignInButton
+            nextPath={nextPath}
+            onError={(message) => {
+              setInvalidCredentials(false);
+              setError(message);
+            }}
+            disabled={pending}
+          />
+          <AuthDivider />
+        </>
+      )}
+      <TextField value={email} onChange={handleEmailChange} type="email" isRequired>
+        <Label>Email</Label>
+        <Input placeholder="you@example.com" />
+      </TextField>
+      <TextField value={password} onChange={setPassword} type="password" isRequired>
+        <Label>Password</Label>
+        <Input />
+      </TextField>
+      <AppLink href="/forgot-password" className="text-sm text-muted">
+        Forgot password?
+      </AppLink>
+      {error && (
+        <InlineAlert>
+          {invalidCredentials ? (
+            <>
+              Invalid email or password. New to Betabook?{" "}
+              <AppLink href={signUpUrl(nextPath)} className="inline underline">
+                Create an account
+              </AppLink>
+            </>
+          ) : (
+            error
+          )}
+        </InlineAlert>
+      )}
+      {unverifiedEmail !== null && (
+        <div className="flex flex-col gap-2">
+          <InlineAlert status="warning">
+            Please verify your email address before signing in.
+          </InlineAlert>
+          <ResendVerificationButton email={unverifiedEmail} nextPath={nextPath} />
+        </div>
+      )}
+      {captcha.widget}
+      <Button type="submit" fullWidth isDisabled={pending || !captcha.ready}>
+        Sign in
+      </Button>
+      <p className="text-sm text-muted">
+        Don&apos;t have an account? <AppLink href={signUpUrl(nextPath)}>Sign up</AppLink>
+      </p>
+    </form>
+  );
+}

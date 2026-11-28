@@ -66,7 +66,7 @@ vi.mock("@/components/climb-lists/add-climbs-dialog", async () => {
   }
   return { AddClimbsDialog };
 });
-vi.mock("@/components/climb-sent-indicator", () => ({
+vi.mock("@/components/sends/climb-sent-indicator", () => ({
   ClimbSentIndicator: ({ sent }: { sent: boolean }) => <span>{sent ? "sent" : "not sent"}</span>,
 }));
 

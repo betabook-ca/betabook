@@ -5,6 +5,8 @@ import ReactMarkdown, { defaultUrlTransform, type Components } from "react-markd
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 
+import { ExternalLink } from "./external-link";
+
 type HeadingLevel = 2 | 3 | 4;
 
 const HEADING_CLASS = ["text-base font-semibold", "text-sm font-semibold"];
@@ -16,17 +18,12 @@ function linkUrl(url: string): string {
   return /^(?:https?:\/\/|mailto:)/i.test(safe) ? safe : "";
 }
 
-function ExternalLink({ href, children }: { href?: string; children?: ReactNode }) {
+function MarkdownLink({ href, children }: { href?: string; children?: ReactNode }) {
   if (!href) return <>{children}</>;
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer nofollow ugc"
-      className="link inline underline focus-visible:status-focused"
-    >
+    <ExternalLink href={href} rel="nofollow ugc">
       {children}
-    </a>
+    </ExternalLink>
   );
 }
 
@@ -46,12 +43,12 @@ function componentsFor(top: HeadingLevel): Components {
     h4: heading(top, 2),
     h5: heading(top, 2),
     h6: heading(top, 2),
-    a: ({ href, children }) => <ExternalLink href={href}>{children}</ExternalLink>,
+    a: ({ href, children }) => <MarkdownLink href={href}>{children}</MarkdownLink>,
     // Images are rendered as links, not loaded. A remote image would expose
     // each viewer's IP address to its host.
     img: ({ src, alt }) => {
       const href = typeof src === "string" ? src : undefined;
-      return <ExternalLink href={href}>{alt || href}</ExternalLink>;
+      return <MarkdownLink href={href}>{alt || href}</MarkdownLink>;
     },
     ul: ({ className, children }) => (
       <ul

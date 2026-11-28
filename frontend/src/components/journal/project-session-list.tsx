@@ -1,5 +1,5 @@
 import { CompanionList } from "@/components/journal/companion-list";
-import { ClampedComment } from "@/components/ui/clamped-comment";
+import { RowComment } from "@/components/ui/list-row";
 import { formatDate } from "@/lib/format-date";
 import type { JournalEntry } from "@/lib/logbook-types";
 
@@ -29,11 +29,7 @@ export function ProjectSessionList({ sessions }: { sessions: readonly SessionNot
             ))}
           </div>
           <CompanionList companions={entry.companions} />
-          {entry.body != null && (
-            <div className="text-sm leading-relaxed text-foreground">
-              <ClampedComment>{entry.body}</ClampedComment>
-            </div>
-          )}
+          {entry.body != null && <RowComment fullWidth>{entry.body}</RowComment>}
         </li>
       ))}
     </ol>

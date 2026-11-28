@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
+import { RatingField } from "@/components/climbing/rating-field";
 import {
   AscentStylePicker,
   FormSection,
   GradeFeelField,
   SuggestedGradeField,
-} from "@/components/send-fields";
-import { RatingField } from "@/components/ui/rating-field";
+} from "@/components/sends/send-fields";
 import type { AscentStyle, GradeFeel } from "@/lib/sends";
 import { StoryPage } from "@/stories/fixtures/story-layout";
 

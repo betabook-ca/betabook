@@ -1,8 +1,9 @@
 import { useParams, useSearchParams } from "react-router";
 
-import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
+import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
+import { ClimberNotFound } from "@/components/profile/climber-not-found";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { SkeletonListRows } from "@/components/ui/skeleton";
-import { PageTitle } from "@/components/ui/typography";
 import {
   parseUserSendsFilter,
   userSendsFilterToSearchParams,
@@ -21,6 +22,7 @@ export default function UserSendsRoute({ viewerId }: { viewerId: string | null }
   const filter = parseUserSendsFilter(searchParamsToRecord(searchParams));
   const query = userSendsFilterToSearchParams(filter).toString();
   const page = useRetainedPage<ApiResponse<"/api/pages/users/{id}/sends">>({
+    resource: "user-sends:UserSendsRoute",
     scope: viewerId && userId ? JSON.stringify([viewerId, userId]) : null,
     query,
     load: (signal) =>
@@ -42,14 +44,8 @@ export default function UserSendsRoute({ viewerId }: { viewerId: string | null }
     isNotFoundError(page.error) ? "Climber not found" : data ? data.user.name + " · Sends" : null,
   );
   if (!viewerId) return <CurrentPageAuthCallout />;
-  if (!userId || isNotFoundError(page.error))
-    return (
-      <div className="py-8 text-center">
-        <PageTitle>Climber not found</PageTitle>
-        <p className="mt-2 text-sm text-muted">No climber profile is available at this URL.</p>
-      </div>
-    );
-  if (!data && error) return <p role="alert">{error}</p>;
+  if (!userId || isNotFoundError(page.error)) return <ClimberNotFound />;
+  if (!data && error) return <InlineAlert>{error}</InlineAlert>;
   if (!data) return <SkeletonListRows rows={8} />;
   const committed = parseUserSendsFilter(searchParamsToRecord(new URLSearchParams(page.query)));
   return (

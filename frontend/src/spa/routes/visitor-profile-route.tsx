@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Outlet, useParams, useSearchParams } from "react-router";
 
-import { FriendshipButton } from "@/components/friendship-button";
-import { ProfileHeading } from "@/components/profile-heading";
-import { ProfileLayout } from "@/components/profile-layout";
-import { ProfileTabs } from "@/components/profile-tabs";
+import { FriendshipButton } from "@/components/friends/friendship-button";
+import { ProfileHeading } from "@/components/profile/profile-heading";
+import { ProfileLayout } from "@/components/profile/profile-layout";
+import { ProfileTabs } from "@/components/profile/profile-tabs";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageErrorBoundary } from "@/spa/lib/render-error-boundary";
 import type { VisitorHeader } from "@/spa/lib/visitor-header";

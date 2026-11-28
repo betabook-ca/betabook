@@ -1,8 +1,9 @@
 import { useParams, useSearchParams } from "react-router";
 
-import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
+import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
+import { ClimberNotFound } from "@/components/profile/climber-not-found";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { SkeletonListRows } from "@/components/ui/skeleton";
-import { PageTitle } from "@/components/ui/typography";
 import { parseUserSendsFilter } from "@/lib/filters/user-sends-filter";
 import { searchParamsToRecord } from "@/lib/url-params";
 import { fetchApi, type ApiResponse } from "@/spa/lib/api";
@@ -51,6 +52,7 @@ export default function UserProfileRoute({ viewerId }: { viewerId: string | null
     pending,
     error,
   } = useRetainedPage({
+    resource: "user-profile:UserProfileRoute",
     scope,
     query: rawQuery,
     load,
@@ -75,12 +77,7 @@ export default function UserProfileRoute({ viewerId }: { viewerId: string | null
   useVisitorHeader(data ? (data.mode === "member" ? data : null) : undefined, error);
   useProfileTitle(data, notFound, unauthorized);
   if (!userId || notFound) {
-    return (
-      <div className="py-8 text-center">
-        <PageTitle>Climber not found</PageTitle>
-        <p className="mt-2 text-sm text-muted">No climber profile is available at this URL.</p>
-      </div>
-    );
+    return <ClimberNotFound />;
   }
   if (unauthorized) {
     return <CurrentPageAuthCallout />;
@@ -91,11 +88,7 @@ export default function UserProfileRoute({ viewerId }: { viewerId: string | null
       : "Could not load the profile."
     : null;
   if (message && (!data || data.mode === "shared")) {
-    return (
-      <div role="alert" className="rounded-lg border border-border bg-surface p-6 text-danger">
-        {message}
-      </div>
-    );
+    return <InlineAlert>{message}</InlineAlert>;
   }
   if (!data) {
     return <SkeletonListRows rows={8} />;

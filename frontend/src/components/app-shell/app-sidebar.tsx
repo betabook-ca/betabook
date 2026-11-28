@@ -1,0 +1,176 @@
+"use client";
+
+import { Button, Tooltip } from "@heroui/react";
+import { clsx } from "clsx";
+import { Menu } from "lucide-react";
+import { useId, useRef, useState, type ReactNode } from "react";
+
+import { AppMenuLinks, type MenuAccount } from "@/components/app-shell/app-menu-links";
+import { MENU_TRIGGER_CLASS } from "@/components/app-shell/nav-link";
+import { useFriendRequestCount } from "@/components/friends/friend-requests-provider";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useClientSession } from "@/hooks/use-client-session";
+
+export function AppSidebar({ children }: { children: ReactNode }) {
+  const session = useClientSession();
+  const requestCount = useFriendRequestCount();
+  return (
+    <SidebarLayout
+      account={session && { ...session.user, isAdmin: session.user.role === "admin" }}
+      requestCount={requestCount}
+    >
+      {children}
+    </SidebarLayout>
+  );
+}
+
+/** Supplies live-account navigation to the shared sidebar frame. */
+export function SidebarLayout({
+  account,
+  requestCount = 0,
+  showToggle = true,
+  children,
+}: {
+  account: MenuAccount | null | undefined;
+  requestCount?: number;
+  showToggle?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <SidebarFrame
+      showToggle={showToggle}
+      renderNavigation={(collapsed) =>
+        account === undefined ? (
+          <div role="status" aria-label="Loading navigation" className="flex flex-col gap-1">
+            {["logbook", "progress", "community", "add"].map((key) => (
+              <Skeleton key={key} rounded="rounded-lg" className="h-10 w-full" />
+            ))}
+          </div>
+        ) : (
+          <AppMenuLinks
+            account={account}
+            requestCount={requestCount}
+            collapsed={collapsed}
+            surface="sidebar"
+          />
+        )
+      }
+    >
+      {children}
+    </SidebarFrame>
+  );
+}
+
+/** Hover/focus preview and pinning shared by the app and contained tutorial preview. */
+export function SidebarFrame({
+  children,
+  renderNavigation,
+  placement = "viewport",
+  showToggle = true,
+  label = "Sidebar",
+  navigationLabel = "Desktop",
+}: {
+  children: ReactNode;
+  renderNavigation: (collapsed: boolean) => ReactNode;
+  placement?: "viewport" | "contained";
+  /** The static guest frame offers working links before React mounts its pin control. */
+  showToggle?: boolean;
+  label?: string;
+  navigationLabel?: string;
+}) {
+  const contained = placement === "contained";
+  const [pinned, setPinned] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const expanded = pinned || preview;
+  const navId = useId();
+  const sidebar = useRef<HTMLElement>(null);
+  const toggleLabel = pinned
+    ? `Collapse ${label.toLowerCase()}`
+    : preview
+      ? `Keep ${label.toLowerCase()} expanded`
+      : `Expand ${label.toLowerCase()}`;
+
+  return (
+    <div
+      onFocusCapture={(event) => {
+        // Keyboard/programmatic focus can enter the page without a mouseleave.
+        if (preview && !sidebar.current?.contains(event.target)) setPreview(false);
+      }}
+      className={clsx(
+        "flex min-w-0 flex-1 flex-col",
+        contained
+          ? [
+              "relative isolate h-full min-h-0 overflow-hidden",
+              pinned ? "@lg/navigation:pl-56" : "@lg/navigation:pl-16",
+            ]
+          : [
+              "pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]",
+              pinned
+                ? "md:pl-[calc(14rem+env(safe-area-inset-left))]"
+                : "md:pl-[calc(4rem+env(safe-area-inset-left))]",
+            ],
+      )}
+    >
+      {/* Hover and bubbled focus reveal navigation; the aside itself is not a control. */}
+      {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
+      <aside
+        ref={sidebar}
+        aria-label={label}
+        className={clsx(
+          "inset-y-0 z-40 hidden flex-col bg-background motion-safe:transition-[width] motion-safe:duration-150 dark:bg-surface",
+          contained
+            ? "absolute left-0 @lg/navigation:flex"
+            : "fixed left-[env(safe-area-inset-left)] md:flex",
+          expanded ? "w-56" : "w-16",
+          preview && !pinned && "shadow-lg",
+        )}
+        // Hydration can hit-test a stationary pointer over the new sidebar.
+        // Wait for movement inside it before covering adjacent page controls.
+        onMouseMove={() => {
+          if (!expanded) setPreview(true);
+        }}
+        onMouseLeave={(event) => {
+          if (!event.currentTarget.contains(document.activeElement)) setPreview(false);
+        }}
+        onFocus={() => setPreview(true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setPreview(false);
+        }}
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-px bg-separator"
+        />
+        <div className="flex h-14 shrink-0 items-center px-3">
+          {showToggle && (
+            <Tooltip.Root delay={400}>
+              <Button
+                isIconOnly
+                variant="ghost"
+                className={`size-10 ${MENU_TRIGGER_CLASS}`}
+                aria-label={toggleLabel}
+                aria-expanded={expanded}
+                aria-controls={navId}
+                onPress={() => {
+                  setPinned(!pinned);
+                  setPreview(false);
+                }}
+              >
+                <Menu aria-hidden className="size-5" />
+              </Button>
+              <Tooltip.Content placement="right">{toggleLabel}</Tooltip.Content>
+            </Tooltip.Root>
+          )}
+        </div>
+        <nav
+          id={navId}
+          aria-label={navigationLabel}
+          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pt-2 pb-3"
+        >
+          {renderNavigation(!expanded)}
+        </nav>
+      </aside>
+      {children}
+    </div>
+  );
+}

@@ -2,7 +2,7 @@
 
 import type { UseOverlayStateReturn } from "@heroui/react";
 
-import { ClimbPicker } from "@/components/climb-picker";
+import { ClimbPicker } from "@/components/climbs/climb-picker";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import type { ClimbWithAreaName } from "@/lib/catalog-types";

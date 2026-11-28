@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
-import { ProfileHeading } from "@/components/profile-heading";
-import { ProfileInvite } from "@/components/profile-invite";
-import { ProfileLayout } from "@/components/profile-layout";
-import { ProfileTabs } from "@/components/profile-tabs";
+import { ProfileHeading } from "@/components/profile/profile-heading";
+import { ProfileInvite } from "@/components/profile/profile-invite";
+import { ProfileLayout } from "@/components/profile/profile-layout";
+import { ProfileTabs } from "@/components/profile/profile-tabs";
 import { STORY_HARDEST } from "@/stories/fixtures/climber-hardest";
 
 export const SHARED_OWNER = {

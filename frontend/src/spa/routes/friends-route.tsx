@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router";
 
-import { AuthCallout } from "@/components/auth-callout";
-import { FriendsContent } from "@/components/friends-content";
+import { AuthCallout } from "@/components/auth/auth-callout";
+import { FriendsContent } from "@/components/friends/friends-content";
 import { parseFriendsView } from "@/lib/friendships";
 import { fetchApi } from "@/spa/lib/api";
 import { useRouter } from "@/spa/lib/navigation";
@@ -14,6 +14,7 @@ export default function FriendsRoute({ viewerId }: { viewerId: string | null }) 
   const load = (signal: AbortSignal) =>
     fetchApi("/api/pages/friends", { query: { view }, signal, sessionEvents: true });
   const { data, error, pending } = useRetainedPage({
+    resource: "friends:FriendsRoute",
     scope: viewerId,
     query: view,
     load,

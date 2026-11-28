@@ -1,5 +1,7 @@
 import { Navigate, useParams, useSearchParams } from "react-router";
 
+import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
+import { signUpCard } from "@/components/auth/sign-up-card";
 import { ClimbListActions } from "@/components/climb-lists/climb-list-actions";
 import {
   ClimbListEditingProvider,
@@ -10,10 +12,10 @@ import { ClimbListIndex } from "@/components/climb-lists/climb-list-index";
 import { ClimbListItems } from "@/components/climb-lists/climb-list-items";
 import { ClimbListShare } from "@/components/climb-lists/climb-list-share";
 import { CopyClimbListButton } from "@/components/climb-lists/copy-climb-list-button";
-import { CurrentPageAuthCallout } from "@/components/current-page-auth-callout";
-import { expiredLinkCard } from "@/components/expired-link-card";
-import { signUpCard } from "@/components/sign-up-card";
+import { expiredLinkCard } from "@/components/sharing/expired-link-card";
 import { AppLink } from "@/components/ui/app-link";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { NotFoundMessage } from "@/components/ui/not-found-message";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import { PageTitle } from "@/components/ui/typography";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -216,6 +218,7 @@ export default function ListsRoute({ viewerId }: { viewerId: string | null }) {
     error,
     pending,
   } = useRetainedPage<Payload>({
+    resource: "lists:ListsRoute",
     scope,
     query,
     load: (signal) => {
@@ -237,10 +240,13 @@ export default function ListsRoute({ viewerId }: { viewerId: string | null }) {
 
   return (
     <ClimbListEditingProvider key={scope}>
-      {Boolean(error) && (
-        <p role="alert">
-          {isNotFoundError(error) ? "List not found" : "Could not load the list. Please try again."}
-        </p>
+      {isNotFoundError(error) ? (
+        <NotFoundMessage
+          heading="List not found"
+          message="No climb list is available at this URL."
+        />
+      ) : (
+        Boolean(error) && <InlineAlert>Could not load the list. Please try again.</InlineAlert>
       )}
       {data ? (
         <LoadedList data={data} viewerId={viewerId} token={token} view={view} pending={pending} />

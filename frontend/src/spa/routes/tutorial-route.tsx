@@ -1,8 +1,10 @@
+import { Button } from "@heroui/react";
 import { useEffect, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router";
 
-import { AuthCallout } from "@/components/auth-callout";
+import { AuthCallout } from "@/components/auth/auth-callout";
 import { TourExperience } from "@/components/product-tours/tour-experience";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { SkeletonListRows } from "@/components/ui/skeleton";
 import {
   getAcknowledgedTourVersion,
@@ -41,19 +43,21 @@ function MemberTutorial({ tour, viewerId }: { tour: ProductTourDefinition; viewe
   }, [attempt]);
   if (failed)
     return (
-      <p role="alert">
-        Couldn't load tutorial progress.{" "}
-        <button
-          type="button"
-          className="link"
-          onClick={() => {
-            setFailed(false);
-            setAttempt((n) => n + 1);
-          }}
-        >
-          Try again
-        </button>
-      </p>
+      <InlineAlert
+        action={
+          <Button
+            size="sm"
+            onPress={() => {
+              setFailed(false);
+              setAttempt((n) => n + 1);
+            }}
+          >
+            Try again
+          </Button>
+        }
+      >
+        Couldn’t load tutorial progress.
+      </InlineAlert>
     );
   if (!progress) return <SkeletonListRows rows={4} />;
   return (

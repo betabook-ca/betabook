@@ -8,7 +8,7 @@ import { lazy, Suspense, useState, useTransition, type ReactNode } from "react";
 import { cardClass } from "@/components/ui/card";
 import { FieldFeedback, FieldHeader } from "@/components/ui/field-support";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { DialogActions, ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionHeading } from "@/components/ui/typography";
 import { MAX_TRIP_NOTES } from "@/lib/trips";
@@ -108,23 +108,24 @@ export function TripNotes({
           presentation="fullscreen"
           isPending={pending}
           footer={
-            <div className="flex w-full flex-wrap items-center justify-between gap-2">
-              <Button
-                variant="ghost"
-                isDisabled={pending}
-                onPress={() => setPreviewing((wasPreviewing) => !wasPreviewing)}
-              >
-                {previewing ? "Edit" : "Preview"}
+            <DialogActions
+              leading={
+                <Button
+                  variant="ghost"
+                  isDisabled={pending}
+                  onPress={() => setPreviewing((wasPreviewing) => !wasPreviewing)}
+                >
+                  {previewing ? "Edit" : "Preview"}
+                </Button>
+              }
+            >
+              <Button variant="ghost" isDisabled={pending} onPress={editor.close}>
+                Cancel
               </Button>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="ghost" isDisabled={pending} onPress={editor.close}>
-                  Cancel
-                </Button>
-                <Button isDisabled={pending} onPress={handleSave}>
-                  Save notes
-                </Button>
-              </div>
-            </div>
+              <Button isDisabled={pending} onPress={handleSave}>
+                Save notes
+              </Button>
+            </DialogActions>
           }
         >
           <div className="flex flex-col gap-3">

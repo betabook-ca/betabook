@@ -75,7 +75,7 @@ it("shows public grades and aggregates from catalog endpoints, with climbers loc
   );
   // Climb refinements belong to the Climbs tab; a mixed list has nothing to apply them to.
   expect(screen.queryByRole("button", { name: "Expand filters" })).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Climbers" }));
+  await user.click(screen.getByRole("radio", { name: "Climbers" }));
   expect(screen.getByRole("link", { name: "Sign in" })).toBeVisible();
   expect(
     screen.queryByRole("link", { name: "Open Test route, Test area" }),
@@ -141,7 +141,7 @@ it("sends the full refinement set to the public catalog and shows what it return
       .filter((url) => url.includes("/api/public/search/climbs"));
   const user = userEvent.setup();
   render(<Search />);
-  await user.click(screen.getByRole("button", { name: "Climbs" }));
+  await user.click(screen.getByRole("radio", { name: "Climbs" }));
   await user.click(await screen.findByRole("button", { name: "Expand filters" }));
 
   await user.click(screen.getByRole("button", { name: /Sort by/ }));
@@ -186,7 +186,7 @@ it("hides the member notice when showMemberNotice is false and still locks climb
   );
   const user = userEvent.setup();
   render(<Search showMemberNotice={false} />);
-  await user.click(screen.getByRole("button", { name: "Climbers" }));
+  await user.click(screen.getByRole("radio", { name: "Climbers" }));
   expect(screen.getByText("Sign in to view climbers.")).toBeVisible();
   expect(screen.queryByRole("region", { name: "Member content" })).not.toBeInTheDocument();
 });

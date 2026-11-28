@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
 import { DisciplineChips } from "@/components/filters/discipline-chips";
-import { GradeFeelField } from "@/components/send-fields";
+import { GradeFeelField } from "@/components/sends/send-fields";
 import type { Discipline } from "@/lib/grades";
 import type { GradeFeel } from "@/lib/sends";
 import { Example, StoryPage } from "@/stories/fixtures/story-layout";

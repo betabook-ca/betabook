@@ -1,14 +1,15 @@
+import { NavigationPendingProvider } from "@/components/app-shell/navigation-pending";
 import { UserSendsFilterToolbar } from "@/components/filters/sends-filter-toolbar";
 import { JournalFilterToolbar, JournalTimeline } from "@/components/journal";
-import { NavigationPendingProvider } from "@/components/navigation-pending";
-import { ProductTour } from "@/components/product-tour";
-import { ProfileHeading } from "@/components/profile-heading";
-import { ProfileInvite } from "@/components/profile-invite";
-import { ProfileLayout } from "@/components/profile-layout";
-import { ProfileTabs } from "@/components/profile-tabs";
-import { SharedProfile } from "@/components/shared-profile";
+import { ProductTour } from "@/components/product-tours/product-tour";
+import { ProfileHeading } from "@/components/profile/profile-heading";
+import { ProfileInvite } from "@/components/profile/profile-invite";
+import { ProfileLayout } from "@/components/profile/profile-layout";
+import { ProfileTabs } from "@/components/profile/profile-tabs";
+import { SharedProfile } from "@/components/profile/shared-profile";
+import { UserSendList } from "@/components/sends/user-send-list";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { SectionHeading } from "@/components/ui/typography";
-import { UserSendList } from "@/components/user-send-list";
 import type { HardestSend } from "@/lib/analytics-types";
 import type { AreaBreadcrumbs } from "@/lib/catalog-types";
 import type { JournalFilter } from "@/lib/filters/journal-filter";
@@ -120,7 +121,7 @@ export function SpaJournalView({
           />
         )}
         {loadError ? (
-          <p role="alert">{loadError}</p>
+          <InlineAlert>{loadError}</InlineAlert>
         ) : (
           <JournalTimeline
             key={JSON.stringify(resultsFilter)}
@@ -181,9 +182,7 @@ export function SpaSendsView({
           <UserSendsFilterToolbar filter={filter} basePath={basePath} tags={data.tags} />
         )}
         {loadError ? (
-          <p role="alert" className="text-sm text-danger">
-            {loadError}
-          </p>
+          <InlineAlert>{loadError}</InlineAlert>
         ) : (
           <UserSendList
             key={JSON.stringify(resultsFilter)}

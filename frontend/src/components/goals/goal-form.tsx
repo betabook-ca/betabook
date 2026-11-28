@@ -4,13 +4,16 @@ import { Button, Checkbox, Input, TextField } from "@heroui/react";
 import { ArrowLeft, ArrowRight, ChevronDown, Dumbbell, MapPin, Mountain } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
+import {
+  DISCIPLINE_CHIP_CLASSNAME,
+  DISCIPLINE_LABELS,
+} from "@/components/climbing/discipline-chip";
+import { useGradePreferences } from "@/components/climbing/grade-preferences";
 import { TagInput } from "@/components/journal/tag-input";
 import { ChoiceCard } from "@/components/ui/choice-card";
 import { choicePillClass } from "@/components/ui/choice-pill";
 import { DatePickerField } from "@/components/ui/date-picker-field";
-import { DISCIPLINE_CHIP_CLASSNAME, DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
 import { FIELD_HEIGHT_CLASS } from "@/components/ui/field";
-import { useGradePreferences } from "@/components/ui/grade-preferences";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { OptionSelect } from "@/components/ui/option-select";
 import { PageTitle } from "@/components/ui/typography";

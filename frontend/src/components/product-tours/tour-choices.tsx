@@ -1,6 +1,7 @@
 "use client";
 
 import { choicePillClass } from "@/components/ui/choice-pill";
+import { ChoicePills } from "@/components/ui/choice-pills";
 import { FILTER_PILL_CLASS } from "@/components/ui/field";
 
 /** A tour demo's local filter pills: one pressed choice, changed only in demo
@@ -19,18 +20,18 @@ export function TourChoices<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
-      {options.map((option) => (
-        <button
-          key={option}
-          type="button"
-          aria-pressed={value === option}
-          className={`${choicePillClass(value === option, "bg-foreground text-background")} ${FILTER_PILL_CLASS}`}
-          onClick={() => onChange(option)}
-        >
-          {labels?.[option] ?? option}
-        </button>
-      ))}
-    </div>
+    <ChoicePills
+      label={label}
+      selectionMode="single"
+      value={[value]}
+      onChange={([next]) => {
+        if (next !== undefined) onChange(next);
+      }}
+      options={options.map((option) => ({ value: option, label: labels?.[option] ?? option }))}
+      pillClass={(selected) =>
+        `${choicePillClass(selected, "bg-foreground text-background")} ${FILTER_PILL_CLASS}`
+      }
+      className="flex flex-wrap gap-1.5"
+    />
   );
 }

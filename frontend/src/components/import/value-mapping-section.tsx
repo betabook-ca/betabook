@@ -1,4 +1,4 @@
-import { DISCIPLINE_LABELS } from "@/components/ui/discipline-chip";
+import { DISCIPLINE_LABELS } from "@/components/climbing/discipline-chip";
 import { Eyebrow, EYEBROW_CLASS } from "@/components/ui/eyebrow";
 import { OptionSelect, type SelectOption } from "@/components/ui/option-select";
 import { StatValue } from "@/components/ui/stat-value";

@@ -2,7 +2,7 @@
 
 import { Button, Checkbox, Label } from "@heroui/react";
 
-import { GRADE_FEEL_OPTIONS } from "@/components/send-fields";
+import { GRADE_FEEL_OPTIONS } from "@/components/sends/send-fields";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { OptionSelect, type SelectOption } from "@/components/ui/option-select";
 import { formatCount } from "@/lib/format";

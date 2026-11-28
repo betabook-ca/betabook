@@ -4,7 +4,7 @@ import { Button, useOverlayState } from "@heroui/react";
 import { CirclePlus, CircleX, Share2 } from "lucide-react";
 import { useState, useTransition } from "react";
 
-import { AreaBreadcrumb } from "@/components/area-breadcrumb";
+import { AreaBreadcrumb } from "@/components/areas/area-breadcrumb";
 import { ProjectCardLayout } from "@/components/journal/project-card-layout";
 import { ProjectSessionNotes } from "@/components/journal/project-session-notes";
 import { ShareProjectDialog } from "@/components/journal/share-project-dialog";

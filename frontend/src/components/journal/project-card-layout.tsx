@@ -1,10 +1,10 @@
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
 
+import { DisciplineChip } from "@/components/climbing/discipline-chip";
+import { Grade } from "@/components/climbing/grade";
+import { GradeLabel } from "@/components/climbing/grade-label";
 import { cardClass } from "@/components/ui/card";
-import { DisciplineChip } from "@/components/ui/discipline-chip";
-import { Grade } from "@/components/ui/grade";
-import { GradeLabel } from "@/components/ui/grade-label";
 import { formatCount } from "@/lib/format";
 import { daysBetween, describeDaysAgo, formatDate } from "@/lib/format-date";
 import type { PinnedProject } from "@/lib/logbook-types";

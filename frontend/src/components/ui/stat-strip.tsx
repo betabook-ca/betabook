@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { cardClass } from "@/components/ui/card";
 import { EYEBROW_CLASS } from "@/components/ui/eyebrow";
+import { StatValue } from "@/components/ui/stat-value";
 
 type Stat = { label: string; value: ReactNode };
 type StatCard = { key: string; heading?: ReactNode; stats: Stat[] };
@@ -27,9 +28,7 @@ export function StatStrip({ cards, className }: StatStripProps) {
             {card.stats.map((stat) => (
               <div key={stat.label} className="flex flex-col items-start gap-1">
                 <span className={EYEBROW_CLASS}>{stat.label}</span>
-                <span className="text-lg leading-tight font-semibold text-foreground tabular-nums">
-                  {stat.value}
-                </span>
+                <StatValue size="sm">{stat.value}</StatValue>
               </div>
             ))}
           </div>

@@ -2,9 +2,9 @@
 import { Button, Input, Label, TextField } from "@heroui/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { Grade } from "@/components/climbing/grade";
 import { cardClass } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { Grade } from "@/components/ui/grade";
 import { StatValue } from "@/components/ui/stat-value";
 import { SectionHeading } from "@/components/ui/typography";
 import { Example, StoryPage } from "@/stories/fixtures/story-layout";
@@ -28,7 +28,9 @@ const appTokens = [
   ),
 ];
 const colorTokens = appTokens.filter(
-  (name) => !/^--(font-|color-|radius-|text-|field-border-width|search-icon)/.test(name),
+  // HeroUI component properties (`--toggle-button-bg`) restyle one component, not a theme role.
+  (name) =>
+    !/^--(font-|color-|radius-|text-|field-border-width|search-icon|toggle-button-)/.test(name),
 );
 const actionRoles = ["accent", "default", "success", "warning", "danger"];
 const inheritedActions = actionRoles.flatMap((role) =>

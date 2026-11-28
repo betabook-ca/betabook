@@ -1,7 +1,7 @@
 "use client";
 import type { ComponentProps, ReactNode } from "react";
 
-import { AuthCallout } from "@/components/auth-callout";
+import { AuthCallout } from "@/components/auth/auth-callout";
 import { textActiveFilters } from "@/components/filters/active-filter-values";
 import { ClimbFilterControls } from "@/components/filters/climb-filter-controls";
 import { useSearch } from "@/hooks/use-search";

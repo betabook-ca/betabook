@@ -5,13 +5,13 @@ import { clsx } from "clsx";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { useGradePreferences } from "@/components/climbing/grade-preferences";
 import { ActiveFilterSummary, type ActiveFilter } from "@/components/filters/active-filter-summary";
 import { disciplineActiveFilters } from "@/components/filters/active-filter-values";
 import { DisciplineChips } from "@/components/filters/discipline-chips";
 import { DisciplineGradeSliders } from "@/components/filters/discipline-grade-sliders";
 import { cardClass } from "@/components/ui/card";
 import { FIELD_HEIGHT_CLASS } from "@/components/ui/field";
-import { useGradePreferences } from "@/components/ui/grade-preferences";
 import type { DisciplineFilter } from "@/lib/filters/discipline-filter";
 
 const EMPTY_ACTIVE_FILTERS: ActiveFilter[] = [];

@@ -4,7 +4,7 @@ import { Button, type UseOverlayStateReturn } from "@heroui/react";
 import { useState, useTransition } from "react";
 
 import { EMPTY_TRIP_DRAFT, TripForm, type TripDraft } from "@/components/trips/trip-form";
-import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { DialogActions, ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { LookupFetcher } from "@/hooks/use-search-lookup";
 import { useViewGuard } from "@/hooks/use-view-guard";
 import { localToday } from "@/lib/format-date";
@@ -128,14 +128,14 @@ export function TripDialog({
       size="md"
       isPending={pending}
       footer={
-        <div className="flex w-full flex-wrap justify-end gap-2">
+        <DialogActions>
           <Button variant="ghost" isDisabled={pending} onPress={state.close}>
             Cancel
           </Button>
           <Button isDisabled={pending || incomplete || datesBackwards} onPress={handleSave}>
             {trip ? "Save changes" : "Create trip"}
           </Button>
-        </div>
+        </DialogActions>
       }
     >
       <TripForm

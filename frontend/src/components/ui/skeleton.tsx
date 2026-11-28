@@ -1,3 +1,4 @@
+import { Skeleton as HeroSkeleton } from "@heroui/react";
 import { clsx } from "clsx";
 
 import { cardClass } from "@/components/ui/card";
@@ -19,14 +20,15 @@ type SkeletonProps = {
   rounded?: string;
 };
 
-/** Base pulsing placeholder block — size it via className (h-*, w-*). The
- * app's only skeleton; the header controls use it too, so every loading
- * surface pulses the same way. */
+/** Base pulsing placeholder block — size it via className (h-*, w-*). HeroUI's
+ * Skeleton in its pulse animation, held still for reduced motion; the header
+ * controls use it too, so every loading surface pulses the same way. */
 export function Skeleton({ className, tone = "base", rounded = "rounded-md" }: SkeletonProps) {
   return (
-    <div
+    <HeroSkeleton
       aria-hidden="true"
-      className={clsx("motion-safe:animate-pulse", rounded, TONE_CLASSNAME[tone], className)}
+      animationType="pulse"
+      className={clsx("motion-reduce:animate-none", rounded, TONE_CLASSNAME[tone], className)}
     />
   );
 }
@@ -42,6 +44,18 @@ export function SkeletonListRows({ rows = 6, className }: { rows?: number; class
           <Skeleton className="h-3 w-1/2" />
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Placeholder for an area or climb page: breadcrumbs, the title, then its
+ * list of climbs or sends. */
+export function SkeletonEntityPage({ rows }: { rows: number }) {
+  return (
+    <div role="status" aria-label="Loading page" className="flex flex-col gap-6">
+      <Skeleton className="h-5 w-48" />
+      <Skeleton className="h-9 w-72" />
+      <SkeletonListRows rows={rows} />
     </div>
   );
 }

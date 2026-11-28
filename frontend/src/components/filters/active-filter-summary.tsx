@@ -3,8 +3,8 @@
 import { Button } from "@heroui/react";
 import { X } from "lucide-react";
 
+import { RatingStars } from "@/components/climbing/rating-stars";
 import { choicePillClass } from "@/components/ui/choice-pill";
-import { RatingStars } from "@/components/ui/rating-stars";
 
 export type ActiveFilter = {
   id: string;

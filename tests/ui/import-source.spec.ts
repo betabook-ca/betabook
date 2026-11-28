@@ -7,7 +7,7 @@ test(
     await openStory(page, info, "components-import-import-source--sendage");
     const mobile = (info.project.use.viewport?.width ?? 0) < 768;
     const fieldset = page.locator("fieldset", { has: page.getByText("Import from") });
-    const segmented = page.getByRole("button", { name: "Mountain Project" });
+    const segmented = page.getByRole("radio", { name: "Mountain Project" });
     if (mobile) await expect(segmented).toBeHidden();
     else await expect(segmented).toBeVisible();
 
