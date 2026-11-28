@@ -27,7 +27,12 @@ function clamp(value: number, max: number) {
 /** A task moving toward done: an import's rows, a file's upload. */
 export function ProgressBar({ value, max, label, size = "md" }: BarProps) {
   return (
-    <HeroProgressBar aria-label={label} value={clamp(value, max)} maxValue={max} className="gap-0">
+    <HeroProgressBar
+      aria-label={label}
+      value={clamp(value, max)}
+      maxValue={max > 0 ? max : 1}
+      className="gap-0"
+    >
       <HeroProgressBar.Track className={trackClass(size)}>
         <HeroProgressBar.Fill className={FILL_CLASS} />
       </HeroProgressBar.Track>
@@ -39,7 +44,12 @@ export function ProgressBar({ value, max, label, size = "md" }: BarProps) {
  * plan's usage. */
 export function AmountMeter({ value, max, label, size = "md" }: BarProps) {
   return (
-    <Meter aria-label={label} value={clamp(value, max)} maxValue={max} className="gap-0">
+    <Meter
+      aria-label={label}
+      value={clamp(value, max)}
+      maxValue={max > 0 ? max : 1}
+      className="gap-0"
+    >
       <Meter.Track className={trackClass(size)}>
         <Meter.Fill className={FILL_CLASS} />
       </Meter.Track>

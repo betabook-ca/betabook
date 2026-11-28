@@ -12,6 +12,7 @@ export default function AccountRoute({ viewerId }: { viewerId: string | null }) 
   const router = useRouter();
   const { data, error } = useRetainedPage({
     resource: "account:AccountRoute",
+    cache: false,
     scope: viewerId,
     query: "",
     load: (signal) => fetchApi("/api/pages/account", { signal, sessionEvents: true }),

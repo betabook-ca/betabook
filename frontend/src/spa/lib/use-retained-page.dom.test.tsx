@@ -9,8 +9,16 @@ function uniqueScope() {
   return `scope-${scopes}`;
 }
 
-function Page({ scope, load }: { scope: string; load: (signal: AbortSignal) => Promise<string> }) {
-  const page = useRetainedPage({ resource: "test-page", scope, query: "", load });
+function Page({
+  scope,
+  load,
+  cache,
+}: {
+  scope: string;
+  load: (signal: AbortSignal) => Promise<string>;
+  cache?: boolean;
+}) {
+  const page = useRetainedPage({ resource: "test-page", scope, query: "", load, cache });
   if (!page.data) return <p>Loading</p>;
   return <p data-pending={page.pending}>{page.data}</p>;
 }
@@ -57,5 +65,17 @@ it("never shows one scope's result for another", async () => {
 
   load.mockReturnValue(new Promise(() => {}));
   render(<Page scope={uniqueScope()} load={load} />);
+  expect(screen.getByText("Loading")).toBeInTheDocument();
+});
+
+it("starts a page that opts out of the cache from its loader every time", async () => {
+  const scope = uniqueScope();
+  const load = vi.fn<(signal: AbortSignal) => Promise<string>>().mockResolvedValue("saved form");
+  const first = render(<Page scope={scope} load={load} cache={false} />);
+  expect(await screen.findByText("saved form")).toBeInTheDocument();
+  first.unmount();
+
+  load.mockReturnValue(new Promise(() => {}));
+  render(<Page scope={scope} load={load} cache={false} />);
   expect(screen.getByText("Loading")).toBeInTheDocument();
 });

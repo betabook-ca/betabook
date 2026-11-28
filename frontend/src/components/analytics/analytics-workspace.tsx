@@ -342,6 +342,14 @@ export function AnalyticsWorkspace({
   const [layout, setLayout] = useState(initialLayout);
   const [saved, setSaved] = useState(initialLayout);
   const [editing, setEditing] = useState(false);
+  const [source, setSource] = useState(initialLayout);
+  if (source !== initialLayout) {
+    setSource(initialLayout);
+    if (!editing && JSON.stringify(initialLayout) !== JSON.stringify(saved)) {
+      setLayout(initialLayout);
+      setSaved(initialLayout);
+    }
+  }
   const isEditing = editing && canCustomize;
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const [showFloatingSave, setShowFloatingSave] = useState(false);

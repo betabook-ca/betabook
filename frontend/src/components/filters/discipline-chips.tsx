@@ -32,10 +32,12 @@ export function DisciplineChips({
   return (
     <ChoicePills
       label="Disciplines"
-      selectionMode={single ? "single" : "multiple"}
-      allowEmpty
+      selectionMode="multiple"
       value={value}
-      onChange={onChange}
+      onChange={(next) => {
+        const added = next.find((discipline) => !value.includes(discipline));
+        onChange(single && added ? [added] : next);
+      }}
       options={DISCIPLINES.map((discipline) => ({
         value: discipline,
         label: DISCIPLINE_LABELS[discipline],

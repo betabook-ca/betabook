@@ -99,16 +99,16 @@ it("logging narrows to one discipline at a time without an expanded filter panel
   const user = userEvent.setup();
   render(<IntegratedClimbPickerDemo />);
   expect(screen.queryByRole("button", { name: /Expand filters/ })).not.toBeInTheDocument();
-  const boulder = screen.getByRole("radio", { name: "Boulder" });
-  const sport = screen.getByRole("radio", { name: "Sport" });
+  const boulder = screen.getByRole("button", { name: "Boulder" });
+  const sport = screen.getByRole("button", { name: "Sport" });
   await user.click(boulder);
-  expect(boulder).toHaveAttribute("aria-checked", "true");
+  expect(boulder).toHaveAttribute("aria-pressed", "true");
   await user.click(sport);
-  expect(sport).toHaveAttribute("aria-checked", "true");
-  expect(boulder).toHaveAttribute("aria-checked", "false");
+  expect(sport).toHaveAttribute("aria-pressed", "true");
+  expect(boulder).toHaveAttribute("aria-pressed", "false");
   await user.click(sport);
-  expect(sport).toHaveAttribute("aria-checked", "false");
-  expect(screen.getByRole("radio", { name: "Trad" })).toHaveAttribute("aria-checked", "false");
+  expect(sport).toHaveAttribute("aria-pressed", "false");
+  expect(screen.getByRole("button", { name: "Trad" })).toHaveAttribute("aria-pressed", "false");
 });
 
 it("offers no result ordering: picking a climb is a lookup, not a browse", async () => {

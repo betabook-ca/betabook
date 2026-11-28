@@ -1,5 +1,6 @@
 import { useParams } from "react-router";
 
+import { NavigationPendingRegion } from "@/components/app-shell/navigation-pending";
 import { CurrentPageAuthCallout } from "@/components/auth/current-page-auth-callout";
 import { ProjectBoard } from "@/components/journal/project-board";
 import { ProjectTabs } from "@/components/journal/project-tabs";
@@ -21,7 +22,7 @@ type Shared = ApiResponse<"/api/pages/projects/{token}">;
 
 function OwnerBoard({ userId, sent }: { userId: string; sent: boolean }) {
   const variant = sent ? "sent" : "open";
-  const { data, query, error } = useRetainedPage({
+  const { data, query, error, pending } = useRetainedPage({
     resource: "projects:OwnerBoard",
     scope: userId,
     query: variant,
@@ -35,22 +36,24 @@ function OwnerBoard({ userId, sent }: { userId: string; sent: boolean }) {
         {sent ? "Sent projects" : "Open projects"}
       </SectionHeading>
       <ProjectTabs view={variant} userId={userId} />
-      <ProjectBoard
-        userId={userId}
-        variant={variant}
-        shareOrigin={window.location.origin}
-        {...board}
-        projects={board?.projects ?? []}
-        hasMore={board?.hasMore ?? false}
-        loading={!board}
-        error={
-          error
-            ? isNotFoundError(error)
-              ? "Project not found"
-              : "Could not load projects."
-            : undefined
-        }
-      />
+      <NavigationPendingRegion pending={pending && Boolean(board)}>
+        <ProjectBoard
+          userId={userId}
+          variant={variant}
+          shareOrigin={window.location.origin}
+          {...board}
+          projects={board?.projects ?? []}
+          hasMore={board?.hasMore ?? false}
+          loading={!board}
+          error={
+            error
+              ? isNotFoundError(error)
+                ? "Project not found"
+                : "Could not load projects."
+              : undefined
+          }
+        />
+      </NavigationPendingRegion>
     </div>
   );
 }

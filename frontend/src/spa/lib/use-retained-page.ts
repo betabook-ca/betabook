@@ -35,6 +35,26 @@ function cachedSnapshot<T>(resource: string, scope: string, query: string, revis
   return snapshot;
 }
 
+/** The server's bootstrap data when the page was loaded with it, else this
+ * page's remembered result. */
+type Remember = { cache: boolean; resource: string; query: string; revision: number };
+
+function rememberedSnapshot<T>(scope: string | null, remember: Remember): Snapshot<T> | null {
+  if (!scope || !remember.cache) return null;
+  return cachedSnapshot<T>(remember.resource, scope, remember.query, remember.revision);
+}
+
+function startingSnapshot<T>(
+  scope: string | null,
+  initial: (() => T | null) | undefined,
+  remember: Remember,
+): Snapshot<T> | null {
+  if (!scope) return null;
+  const data = initial?.();
+  if (data != null) return { scope, query: remember.query, revision: remember.revision, data };
+  return rememberedSnapshot<T>(scope, remember);
+}
+
 function invalidatesAccess(cause: unknown) {
   if (cause instanceof AuthenticationRequiredError || cause instanceof TermsAcceptanceRequiredError)
     return true;
@@ -45,7 +65,9 @@ function invalidatesAccess(cause: unknown) {
 /** Keep the workspace mounted on filter changes. Full loads revalidate its
  * metadata after a mutation. Scope includes every identity or share credential
  * needed to display the snapshot. A late reply cannot revive a previous scope.
- * `resource` names the loader, so pages sharing a scope keep separate results. */
+ * `resource` names the loader, so pages sharing a scope keep separate results.
+ * Pass `cache: false` for a page whose forms copy their first data into state:
+ * a remembered result would seed them with values the reload can't replace. */
 export function useRetainedPage<T>({
   resource,
   scope,
@@ -53,8 +75,10 @@ export function useRetainedPage<T>({
   initial,
   load,
   refine,
+  cache = true,
 }: {
   resource: string;
+  cache?: boolean;
   scope: string | null;
   query: string;
   load: (signal: AbortSignal) => Promise<T>;
@@ -62,15 +86,12 @@ export function useRetainedPage<T>({
   refine?: (previous: T, previousQuery: string, signal: AbortSignal) => Promise<T>;
 }) {
   const revision = useRouterRefreshKey();
-  const [snapshot, setSnapshot] = useState<Snapshot<T> | null>(() => {
-    if (!scope) return null;
-    const data = initial?.();
-    if (data != null) return { scope, query, revision, data };
-    return cachedSnapshot<T>(resource, scope, query, revision);
-  });
+  const remember = { cache, resource, query, revision };
+  const [snapshot, setSnapshot] = useState<Snapshot<T> | null>(() =>
+    startingSnapshot(scope, initial, remember),
+  );
   const [failure, setFailure] = useState<Failure | null>(null);
-  if (snapshot && snapshot.scope !== scope)
-    setSnapshot(scope ? cachedSnapshot<T>(resource, scope, query, revision) : null);
+  if (snapshot && snapshot.scope !== scope) setSnapshot(rememberedSnapshot<T>(scope, remember));
   if (
     failure &&
     (failure.scope !== scope || failure.query !== query || failure.revision !== revision)

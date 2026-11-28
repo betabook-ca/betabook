@@ -9,7 +9,9 @@ import { choicePillClass } from "@/components/ui/choice-pill";
 import type { ClimbType } from "@/lib/grades";
 
 /** The climb form's discipline choice: one pill per discipline, each wearing
- * its chip color once chosen. */
+ * its chip color once chosen. Native radios rather than ChoicePills, because
+ * the choice takes part in the surrounding form: `required` blocks submit and
+ * `disabled` follows the form's fieldset while a save is in flight. */
 export function DisciplinePicker({
   value,
   onChange,

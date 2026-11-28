@@ -4,7 +4,11 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import { FeatureAnnouncementScope } from "@/components/app-shell/feature-announcement";
 import type { ActionResult } from "@/lib/action-result";
-import { DEFAULT_ANALYTICS_LAYOUT, ANALYTICS_CARD_IDS } from "@/lib/analytics-layout";
+import {
+  DEFAULT_ANALYTICS_LAYOUT,
+  ANALYTICS_CARD_IDS,
+  type AnalyticsLayout,
+} from "@/lib/analytics-layout";
 import { ANALYTICS_CUSTOMIZE_ANNOUNCEMENT } from "@/lib/feature-announcements";
 
 import { AnalyticsWorkspace } from "./analytics-workspace";
@@ -272,4 +276,14 @@ it("does not announce Customize to visitors or owners who already dismissed it",
   expect(
     screen.queryByRole("heading", { name: "Make Analytics your own" }),
   ).not.toBeInTheDocument();
+});
+
+it("shows a newer saved layout that arrives while the dashboard isn't being edited", () => {
+  const { rerender } = render(<AnalyticsWorkspace cards={cards} charts={[]} canCustomize />);
+  const newer: AnalyticsLayout = { ...DEFAULT_ANALYTICS_LAYOUT, cards: ["sends", "streak"] };
+  rerender(<AnalyticsWorkspace cards={cards} charts={[]} canCustomize initialLayout={newer} />);
+  expect(screen.getAllByRole("article").map((el) => el.getAttribute("aria-label"))).toEqual([
+    "sends",
+    "streak",
+  ]);
 });
