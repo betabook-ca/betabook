@@ -87,6 +87,7 @@ it("compacts after downward scrolling and expands on upward scrolling or route c
   state.pathname = "/users/owner/goals";
   rerender(<AppTabBar />);
   expect(tabBar()).toHaveAttribute("data-compact", "false");
+  fireEvent.pointerDown(screen.getByRole("link", { name: "Logbook" }));
   scrollTo(300);
   expect(tabBar()).toHaveAttribute("data-compact", "false");
   fireEvent.touchMove(window);

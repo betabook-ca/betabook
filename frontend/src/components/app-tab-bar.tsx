@@ -99,14 +99,12 @@ export function FloatingAppTabBar(props: AppTabsProps) {
       window.addEventListener("touchmove", beginScroll, { passive: true, once: true });
       window.addEventListener("wheel", beginScroll, { passive: true, once: true });
       window.addEventListener("keydown", onKeyDown);
-      window.addEventListener("pointerdown", beginScroll, { passive: true, once: true });
     }
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("touchmove", beginScroll);
       window.removeEventListener("wheel", beginScroll);
       window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("pointerdown", beginScroll);
     };
   }, [pathname]);
 
